@@ -8,6 +8,7 @@ local _ = nil
 -- Main Stuff
     GS.PreventExecution = false
     GS.SpellThrottle = 0
+    GS.WaitForCombatLog = 0
 
     function GS.MainFrameEvents(self, originalEvent, ...)
         if originalEvent == "PLAYER_ENTERING_WORLD" then
@@ -32,14 +33,18 @@ local _ = nil
     end
 
     function GS.CombatFrameCreation()
-        GS.CombatFrame = CreateFrame("Frame", "GSCombatFrame", GSMainFrame)
+        if not GSCombatFrame then GS.CombatFrame = CreateFrame("Frame", "GSCombatFrame", GSMainFrame) end
         GSCombatFrame:SetScript("OnUpdate", GS.ExecuteRotation)
     end
 
     function GS.ExecuteRotation()
         if not FireHack or GS.PreventExecution or not GS.Start or UnitIsDeadOrGhost("player") then return end
         if not GS.RanOnce then
-            -- DownloadURL("raw.githubusercontent.com", "/g1zstar/gstar/master/Revision.txt", true, print)
+            if not ReadFile(GetFireHackDirectory().."\\Scripts\\GStar Rotations\\Revision.txt") then
+                GS.CheckUpdateFailed("no local file")
+            else
+                DownloadURL("raw.githubusercontent.com", "/g1zstar/GStar-Rotations/master/Revision.txt", true, GS.CheckUpdate, GS.DownloadURLFailed)
+            end
             GS.RanOnce = true
         end
 
@@ -67,25 +72,13 @@ local _ = nil
         end
     end
 
-    function GS.RaFQuesting()
-        if GetNumGroupMembers() < 6 and ObjectExists("focus") then
-            AssistUnit("focus")
-            if GS.Distance("focus") > 1 then
-                MoveTo(ObjectPosition("focus"))
-            elseif not UnitUsingVehicle("player") then
-                FaceDirection(ObjectFacing("focus"))
-                if UnitExists("target") and UnitCanAttack("player", "target") and not UnitIsDeadOrGhost("target") then StartAttack() end
-            end
-        end
-    end
-
     function GS.CombatInformationFrameCreation()
         GS.MobTargetsPreliminary, GS.MobTargets = {}, {}
         GS.AllyTargets = {}
         GS.TTDM, GS.TTD = {}, {}
-        GS.DebugTable = {}
+        GS.DebugTable = {debugStack = "", pointer = 0, nameOfTarget = "", ogSpell = 0, Spell = "", x = 0, y = 0, z = 0, interrupt = "", time = 0, timeSinceLast = 0, reason = ""}
 
-        GS.InformationGatheringFrame = CreateFrame("Frame", "GSCombatInfoFrame", GSMainFrame)
+        if not GSCombatInfoFrame then GS.InformationGatheringFrame = CreateFrame("Frame", "GSCombatInfoFrame", GSMainFrame) end
         GSCombatInfoFrame:RegisterEvent("PLAYER_DEAD")
         GSCombatInfoFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
         GSCombatInfoFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
@@ -96,51 +89,55 @@ local _ = nil
     end
 
     function GS.HealingTooltipFrameCreation()
-        GS.HealingTooltipFrame = CreateFrame("GameTooltip", "GSHealingTooltipFrame", nil, "GameTooltipTemplate")
-        GSHealingTooltipFrame:SetOwner(UIParent, "ANCHOR_NONE")
+        if not GSHealingTooltipFrame then
+            GS.HealingTooltipFrame = CreateFrame("GameTooltip", "GSHealingTooltipFrame", nil, "GameTooltipTemplate")
+            GSHealingTooltipFrame:SetOwner(UIParent, "ANCHOR_NONE")
+        end
     end
 
     function GS.MonitorFrameCreation()
-        GS.MonitorParentFrame = CreateFrame("Frame", "GSMonitorParentFrame", UIParent)
-        GSMonitorParentFrame:SetFrameStrata("MEDIUM")
-        GSMonitorParentFrame:SetWidth("64")
-        GSMonitorParentFrame:SetHeight("64")
+        if not GSMonitorParentFrame then
+            GS.MonitorParentFrame = CreateFrame("Frame", "GSMonitorParentFrame", UIParent)
+            GSMonitorParentFrame:SetFrameStrata("MEDIUM")
+            GSMonitorParentFrame:SetWidth("64")
+            GSMonitorParentFrame:SetHeight("64")
 
-        if GSR.MonitorX and GSR.MonitorY then
-            GSMonitorParentFrame:ClearAllPoints()
-            GSMonitorParentFrame:SetPoint("BOTTOMLEFT", "UIParent", "BOTTOMLEFT", GSR.MonitorX, GSR.MonitorY)
-        else
-            GSMonitorParentFrame:ClearAllPoints()
-            GSMonitorParentFrame:SetPoint("CENTER")
+            if GSR.MonitorX and GSR.MonitorY then
+                GSMonitorParentFrame:ClearAllPoints()
+                GSMonitorParentFrame:SetPoint("BOTTOMLEFT", "UIParent", "BOTTOMLEFT", GSR.MonitorX, GSR.MonitorY)
+            else
+                GSMonitorParentFrame:ClearAllPoints()
+                GSMonitorParentFrame:SetPoint("CENTER")
+            end
+
+            GS.MonitorTexture = GSMonitorParentFrame:CreateTexture("GSMonitorTexture")
+            GSMonitorTexture:SetTexture(GetFireHackDirectory().."\\Scripts\\GStar Rotations\\GStarMonitor.tga")
+            GSMonitorTexture:SetAllPoints(GSMonitorParentFrame)
+
+            GSAoEOnTexture = GSMonitorParentFrame:CreateTexture("GSAoEOnTexture")
+            GSAoEOffTexture = GSMonitorParentFrame:CreateTexture("GSAoEOffTexture")
+            GSAoEOnTexture:SetTexture(GetFireHackDirectory().."\\Scripts\\GStar Rotations\\eyes.tga")
+            GSAoEOffTexture:SetTexture(GetFireHackDirectory().."\\Scripts\\GStar Rotations\\no.tga")
+
+            GSAoEOnTexture:SetPoint("RIGHT", -10, 3)
+            GSAoEOnTexture:SetSize(20, 20)
+            GSAoEOffTexture:SetPoint("RIGHT", -10, 3)
+            GSAoEOffTexture:SetSize(20, 20)
+
+            GSCDsOnTexture = GSMonitorParentFrame:CreateTexture("GSCDsOnTexture")
+            GSCDsOffTexture = GSMonitorParentFrame:CreateTexture("GSCDsOffTexture")
+            GSCDsOnTexture:SetTexture(GetFireHackDirectory().."\\Scripts\\GStar Rotations\\eyes.tga")
+            GSCDsOffTexture:SetTexture(GetFireHackDirectory().."\\Scripts\\GStar Rotations\\no.tga")
+
+            GSCDsOnTexture:SetPoint("BOTTOMRIGHT", -10, 4)
+            GSCDsOnTexture:SetSize(20, 20)
+            GSCDsOffTexture:SetPoint("BOTTOMRIGHT", -10, 4)
+            GSCDsOffTexture:SetSize(20, 20)
+
+            GSMonitorParentFrame:SetMovable(1)
+            GSMonitorParentFrame:EnableMouse(true)
+            GSMonitorParentFrame:RegisterForDrag("LeftButton")
         end
-
-        GS.MonitorTexture = GSMonitorParentFrame:CreateTexture("GSMonitorTexture")
-        GSMonitorTexture:SetTexture("Interface\\Addons\\GStar\\GStarMonitor.tga")
-        GSMonitorTexture:SetAllPoints(GSMonitorParentFrame)
-
-        GSAoEOnTexture = GSMonitorParentFrame:CreateTexture("GSAoEOnTexture")
-        GSAoEOffTexture = GSMonitorParentFrame:CreateTexture("GSAoEOffTexture")
-        GSAoEOnTexture:SetTexture("Interface\\Addons\\GStar\\eyes.tga")
-        GSAoEOffTexture:SetTexture("Interface\\Addons\\GStar\\no.tga")
-
-        GSAoEOnTexture:SetPoint("RIGHT", -10, 3)
-        GSAoEOnTexture:SetSize(20, 20)
-        GSAoEOffTexture:SetPoint("RIGHT", -10, 3)
-        GSAoEOffTexture:SetSize(20, 20)
-
-        GSCDsOnTexture = GSMonitorParentFrame:CreateTexture("GSCDsOnTexture")
-        GSCDsOffTexture = GSMonitorParentFrame:CreateTexture("GSCDsOffTexture")
-        GSCDsOnTexture:SetTexture("Interface\\Addons\\GStar\\eyes.tga")
-        GSCDsOffTexture:SetTexture("Interface\\Addons\\GStar\\no.tga")
-
-        GSCDsOnTexture:SetPoint("BOTTOMRIGHT", -10, 4)
-        GSCDsOnTexture:SetSize(20, 20)
-        GSCDsOffTexture:SetPoint("BOTTOMRIGHT", -10, 4)
-        GSCDsOffTexture:SetSize(20, 20)
-
-        GSMonitorParentFrame:SetMovable(1)
-        GSMonitorParentFrame:EnableMouse(true)
-        GSMonitorParentFrame:RegisterForDrag("LeftButton")
         GSMonitorParentFrame:SetScript("OnMouseDown", function() if GSAoEOffTexture:IsMouseOver() then GS.ToggleAoE() elseif GSCDsOffTexture:IsMouseOver() then GS.ToggleCDs() end end)
         GSMonitorParentFrame:SetScript("OnDragStart", GSMonitorParentFrame.StartMoving)
         GSMonitorParentFrame:SetScript("OnDragStop", function(self) local variableX, variableY = self:GetRect(); GS.SaveToGSR("MonitorX", variableX); GS.SaveToGSR("MonitorY", variableY); GSMonitorParentFrame:StopMovingOrSizing() end)
@@ -212,10 +209,25 @@ local _ = nil
             if command == "cds" then GS.ToggleCDs() return true end
 
             if command == "debug" or command == "d" then
-                -- GSD = GS
                 for k,v in pairs(GS) do
                     GSD[k] = v
                 end
+                return true
+            end
+
+            if command == "wipe" or command == "w" then
+                print("GStar Rotations: Reloading Files")
+                GSCombatFrame:SetScript("OnUpdate", nil)
+                GSCombatInfoFrame:SetScript("OnEvent", nil)
+                GSCombatInfoFrame:SetScript("OnUpdate", nil)
+                GSMainFrame:SetScript("OnEvent", nil)
+                GSMonitorParentFrame:SetScript("OnDragStart", nil)
+                GSMonitorParentFrame:SetScript("OnDragStop", nil)
+                GSMonitorParentFrame:SetScript("OnMouseDown", nil)
+                GSMonitorParentFrame:SetScript("OnUpdate", nil)
+                GS = nil
+                GSD = nil
+                LoadScript("GStar Rotations\\gstar.lua")
                 return true
             end
 
@@ -490,6 +502,32 @@ local _ = nil
         GS.rotationCacheCounter = GS.rotationCacheCounter + 1
     end
 
+    function GS.RaFQuesting()
+        if GetNumGroupMembers() < 6 and ObjectExists("focus") then
+            AssistUnit("focus")
+            if GS.Distance("focus") > 1 then
+                MoveTo(ObjectPosition("focus"))
+            elseif not UnitUsingVehicle("player") then
+                FaceDirection(ObjectFacing("focus"))
+                if UnitExists("target") and UnitCanAttack("player", "target") and not UnitIsDeadOrGhost("target") then StartAttack() end
+            end
+        end
+    end
+
+    function GS.CheckUpdate(Revision)
+        if ReadFile(GetFireHackDirectory().."\\Scripts\\GStar Rotations\\Revision.txt") < Revision then print("GStar Rotations: Update Available") return end
+    end
+
+    function GS.CheckUpdateFailed(reason)
+        if reason == "no local file" then
+            print("GStar Rotations: No Revision.txt found in "..GetFireHackDirectory().."\\Scripts\\GStar Rotations\\\nCannot check for updates.")
+        end
+    end
+
+    function GS.DownloadURLFailed()
+        print("GStar Rotations: Could not check for updates due to failure in DownloadURL().\nCannot check for updates.")
+    end
+
     function GS.CombatInformationFrameEvents(self, registeredEvent, ...)
         if not FireHack or GS.PreventExecution then return end
         -- if registeredEvent == "PLAYER_DEAD" then
@@ -517,29 +555,27 @@ local _ = nil
 
             if sourceName ~= UnitName("player") and not tContains(GS.MobsThatInterrupt, sourceName) then return end
 
+            if GS.WaitForCombatLog then GS.WaitForCombatLog = false end
+
             if event == "SPELL_CAST_START" then  -- MobsThatInterrupt functionality would go in here + healing and projectile throttles
-                GS.SpellThrottle = (GetTime()+math.random(125, 500)*.001)+GS.GCD()
+                -- GS.SpellThrottle = (GetTime()+math.random(40, 240)*.001)
 
                 -- Priest
 
                 return
             end
             if event == "SPELL_CAST_FAILED" then  -- unthrottle        functionality would go in here + queueing
-                if failedType ~= "Another action is in progress" and failedType ~= "Not yet recovered" then
+                if failedType ~= "Another action is in progress" and failedType ~= "Not yet recovered" and failedType ~= "You can't do that yet" then
                     GS.SpellThrottle = 0
-                    GS.LastTargetCast = nil
-                    -- print(spellName..": Unthrottling "..failedType)
+                    -- GS.LastTargetCast = nil
+                    GS.Log(spellName..": Unthrottling "..failedType)
                 end
 
                 return
             end
             if event == "SPELL_CAST_SUCCESS" then  -- unthrottle        functionality would go in here + queueing success + healing and multi-step throttle
                 if spellID ~= 147193 then
-                    if GS.CastTime(spellID) > 0 then
-                        GS.SpellThrottle = (GetTime()+math.random(125, 500)*.001)
-                    else
-                        GS.SpellThrottle = (GetTime()+math.random(125, 500)*.001)+GS.GCD()
-                    end
+                    GS.SpellThrottle = (GetTime()+math.random(20, 60)*.001)+GS.SpellCDDuration(61304)
                 end
 
                 if GSR.Class == "MONK" and GS.Spec == 3 --[[and spellID ~= roll and spellID ~= energizing_elixir]] then
@@ -1411,6 +1447,7 @@ local _ = nil
         end
 
         function GS.GCD()
+            if GSR.Class..GS.Spec == "MONK3" then return 1 end
             if GSR.Dev.CachedFunctions and GS.SavedReturns.GCD.rotationCacheCounter == GS.rotationCacheCounter then
                 if GS.SavedReturns.GCD[GS.rotationCacheCounter.."Result"] then return GS.SavedReturns.GCD[GS.rotationCacheCounter.."Result"] end
             end
@@ -1801,6 +1838,7 @@ local _ = nil
 
     -- Cast Functions
         function GS.Cast(guid, Name, x, y, z, interrupt, reason)
+            if GS.WaitForCombatLog then return end
             local name = Name
             if type(Name) == "number" then Name = GetSpellInfo(Name) end
 
@@ -1859,12 +1897,16 @@ local _ = nil
                     rotationXC, rotationYC, rotationZC = ObjectPosition(guid)
                     CastAtPosition(rotationXC + math.random(-0.01, 0.01), rotationYC + math.random(-0.01, 0.01), rotationZC + math.random(-0.01, 0.01))
                 end
-                CancelPendingSpell()
+                if IsAoEPending() then
+                    CancelPendingSpell()
+                    return
+                end
             end
             -- debug stuff
             if GSR.Dev and GSR.Dev.CastInformation then
+                lsuWA = name
                 GS.DebugTable["debugStack"] = string.gsub(debugstack(2, 100, 100), '%[string "local function GetScriptName %(%) return "gst..."%]', "line")
-                -- GS.DebugTable["debugStack"] = string.gsub(string.gsub(debugstack(2, 100, 100), "Interface\\AddOns\\GStar\\GStar.lua", "line"), "\n$", "")
+                -- GS.DebugTable["debugStack"] = string.gsub(string.gsub(debugstack(2, 100, 100), GetFireHackDirectory().."\Scripts\GStar Rotations\\GStar.lua", "line"), "\n$", "")
                 GS.DebugTable["pointer"] = guid or "N/A"
                 if GS.DebugTable["pointer"] ~= "N/A" then GS.DebugTable["nameOfTarget"] = UnitName(guid) else GS.DebugTable["nameOfTarget"] = "N/A" end
                 GS.DebugTable["ogSpell"] = name
@@ -1873,6 +1915,8 @@ local _ = nil
                 GS.DebugTable["y"] = y or "N/A"
                 GS.DebugTable["z"] = z or "N/A"
                 GS.DebugTable["interrupt"] = interrupt or "N/A"
+                GS.DebugTable["rotationCacheCounter"] = GS.rotationCacheCounter
+                GS.DebugTable["timeSinceLast"] = GS.DebugTable["time"] and (GetTime() - GS.DebugTable["time"]) or 0
                 GS.DebugTable["time"] = GetTime()
                 GS.DebugTable["reason"] = reason or "N/A"
                 -- GS.DebugTable["performance"] = debugprofilestop()-timedebug
@@ -1885,7 +1929,8 @@ local _ = nil
                     WriteFile("C:\\Garrison.json", GS.File..",\n"..GS.tempStr)
                 end
             end
-            GS.SpellThrottle = GetTime()+math.random(125, 500)*.001
+            GS.WaitForCombatLog = true
+            -- GS.SpellThrottle = GetTime()+.234 -- Waits 14.04 frames
             GS.InterruptNextTick = nil
             toggleLog = true
             return true
@@ -2023,17 +2068,19 @@ local _ = nil
         if not GS.MainFrame then
             GSR = GetCharacterCustomVariable("GSR") or {Dev = {hide = true}, }
 
-            GS.MainFrame = CreateFrame("Frame", "GSMainFrame", nil)
-            GSMainFrame:RegisterEvent("PLAYER_LOGIN")
-            GSMainFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-            GSMainFrame:RegisterEvent("LOADING_SCREEN_DISABLED")
-            GSMainFrame:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
-            GSMainFrame:RegisterEvent("PLAYER_TALENT_UPDATE")
+            if not GSMainFrame then
+                GS.MainFrame = CreateFrame("Frame", "GSMainFrame", nil)
+                GSMainFrame:RegisterEvent("PLAYER_LOGIN")
+                GSMainFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+                GSMainFrame:RegisterEvent("LOADING_SCREEN_DISABLED")
+                GSMainFrame:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
+                GSMainFrame:RegisterEvent("PLAYER_TALENT_UPDATE")
+            end
             GSMainFrame:SetScript("OnEvent", GS.MainFrameEvents)
 
-            if not GSMonitorParentFrame then GS.MonitorFrameCreation(); GS.MonitorAnimationToggle("off")end
-            if not GSCombatFrame then GS.CombatFrameCreation() end
-            if not GSCombatInfoFrame then GS.CombatInformationFrameCreation() end
+            GS.MonitorFrameCreation(); GS.MonitorAnimationToggle("off")
+            GS.CombatFrameCreation()
+            GS.CombatInformationFrameCreation()
             if not GSHealingTooltipFrame then GS.HealingTooltipFrameCreation() end
 
             GS.SaveToGSR("Class", (GSR.Class or select(2, UnitClass("player"))))
@@ -3624,7 +3671,7 @@ local _ = nil
                                         -- actions+=/serenity,if=artifact.strike_of_the_windlord.enabled&cooldown.strike_of_the_windlord.up&cooldown.fists_of_fury.remains<=3&cooldown.rising_sun_kick.remains<8
                                         -- actions+=/serenity,if=!artifact.strike_of_the_windlord.enabled&cooldown.fists_of_fury.remains<=3&cooldown.rising_sun_kick.remains<8
                                 end
-                                if GS.Talent31 and GS.SIR(energizing_elixir) and GS.PP() < GS.PP("max") and GS.CP() <= 1 and not GS.Aura("player", serenity) then GS.Cast(_, energizing_elixir, _, _, _, _, "Energizing Elixir") return end
+                                if GS.Talent31 and GS.SIR(energizing_elixir) and GS.PP("deficit") > 0 and GS.CP() <= 1 and not GS.Aura("player", serenity) then GS.Cast(_, energizing_elixir, _, _, _, _, "Energizing Elixir") return end
                                 if GS.Talent61 and GS.SIR(rushing_jade_wind) and GS.Aura("player", serenity) and GS.Monk.lastCast ~= rushing_jade_wind then GS.Cast(_, rushing_jade_wind, _, _, _, _, "Rushing Jade Wind: Free Serenity") return end
                                 -- actions+=/strike_of_the_windlord,if=artifact.strike_of_the_windlord.enabled
                                 if GS.Talent72 and GS.SIR(whirling_dragon_punch) and not GS.IsCH() and GS.Distance("target") < 8+UnitCombatReach("target") then GS.Cast(_, whirling_dragon_punch, _, _, _, _, "Whirling Dragon Punch") return end
