@@ -8,7 +8,7 @@ local _ = nil
 -- Main Stuff
     GS.PreventExecution = false
     GS.SpellThrottle = 0
-    GS.WaitForCombatLog = 0
+    GS.WaitForCombatLog = false
 
     function GS.MainFrameEvents(self, originalEvent, ...)
         if originalEvent == "PLAYER_ENTERING_WORLD" then
@@ -52,16 +52,16 @@ local _ = nil
             GS.RaFQuesting()
         end
 
-        if GS.Spec and GSR.Class and GSR.LevelingRAF and GS[GSR.Class..GS.Spec.."90"] then
-            GS.rotationCacheCounter = GS.rotationCacheCounter + 1
+        if GSR.LevelingRAF and GS.Spec and GSR.Class and GS[GSR.Class..GS.Spec.."90"] then
+            GS.RotationCacheCounter = GS.RotationCacheCounter + 1
             GS[GSR.Class..GS.Spec.."90"]()
             return
         elseif GS.Spec and GSR.Class and GS[GSR.Class..GS.Spec] then
-            GS.rotationCacheCounter = GS.rotationCacheCounter + 1
+            GS.RotationCacheCounter = GS.RotationCacheCounter + 1
             GS[GSR.Class..GS.Spec]()
             return
         elseif not GS.Spec and GSR.Class and GS[GSR.Class] then
-            GS.rotationCacheCounter = GS.rotationCacheCounter + 1
+            GS.RotationCacheCounter = GS.RotationCacheCounter + 1
             GS[GSR.Class]()
             return
         else
@@ -76,7 +76,8 @@ local _ = nil
         GS.MobTargetsPreliminary, GS.MobTargets = {}, {}
         GS.AllyTargets = {}
         GS.TTDM, GS.TTD = {}, {}
-        GS.DebugTable = {debugStack = "", pointer = 0, nameOfTarget = "", ogSpell = 0, Spell = "", x = 0, y = 0, z = 0, interrupt = "", time = 0, timeSinceLast = 0, reason = ""}
+        GS.DebugTable = {}
+        -- debugStack = "", pointer = 0, nameOfTarget = "", ogSpell = 0, Spell = "", x = 0, y = 0, z = 0, interrupt = "", time = 0, timeSinceLast = 0, reason = ""
 
         if not GSCombatInfoFrame then GS.InformationGatheringFrame = CreateFrame("Frame", "GSCombatInfoFrame", GSMainFrame) end
         GSCombatInfoFrame:RegisterEvent("PLAYER_DEAD")
@@ -111,13 +112,13 @@ local _ = nil
             end
 
             GS.MonitorTexture = GSMonitorParentFrame:CreateTexture("GSMonitorTexture")
-            GSMonitorTexture:SetTexture(GetFireHackDirectory().."\\Scripts\\GStar Rotations\\GStarMonitor.tga")
+            GSMonitorTexture:SetTexture("Interface\\Textures\\GStarMonitor.tga") -- GetFireHackDirectory().."\\Scripts\\GStar Rotations\\GStarMonitor.tga"
             GSMonitorTexture:SetAllPoints(GSMonitorParentFrame)
 
             GSAoEOnTexture = GSMonitorParentFrame:CreateTexture("GSAoEOnTexture")
             GSAoEOffTexture = GSMonitorParentFrame:CreateTexture("GSAoEOffTexture")
-            GSAoEOnTexture:SetTexture(GetFireHackDirectory().."\\Scripts\\GStar Rotations\\eyes.tga")
-            GSAoEOffTexture:SetTexture(GetFireHackDirectory().."\\Scripts\\GStar Rotations\\no.tga")
+            GSAoEOnTexture:SetTexture("Interface\\Textures\\eyes.tga")
+            GSAoEOffTexture:SetTexture("Interface\\Textures\\no.tga")
 
             GSAoEOnTexture:SetPoint("RIGHT", -10, 3)
             GSAoEOnTexture:SetSize(20, 20)
@@ -126,8 +127,8 @@ local _ = nil
 
             GSCDsOnTexture = GSMonitorParentFrame:CreateTexture("GSCDsOnTexture")
             GSCDsOffTexture = GSMonitorParentFrame:CreateTexture("GSCDsOffTexture")
-            GSCDsOnTexture:SetTexture(GetFireHackDirectory().."\\Scripts\\GStar Rotations\\eyes.tga")
-            GSCDsOffTexture:SetTexture(GetFireHackDirectory().."\\Scripts\\GStar Rotations\\no.tga")
+            GSCDsOnTexture:SetTexture("Interface\\Textures\\eyes.tga")
+            GSCDsOffTexture:SetTexture("Interface\\Textures\\no.tga")
 
             GSCDsOnTexture:SetPoint("BOTTOMRIGHT", -10, 4)
             GSCDsOnTexture:SetSize(20, 20)
@@ -209,10 +210,11 @@ local _ = nil
             if command == "cds" then GS.ToggleCDs() return true end
 
             if command == "debug" or command == "d" then
-                for k,v in pairs(GS) do
-                    GSD[k] = v
-                end
-                return true
+                -- for k,v in pairs(GS) do
+                --     GSD[k] = v
+                -- end
+                -- return true
+                return GS
             end
 
             if command == "wipe" or command == "w" then
@@ -259,7 +261,7 @@ local _ = nil
     local auraTable = {}
     local toggleLog = false
     local healingStringPlaceholderOne, healingStringPlaceholderTwo = "", ""
-    GS.rotationCacheCounter = 0
+    GS.RotationCacheCounter = 0
     GS.SpellNotKnown, GS.SpellOutranged = {}, {}
     GS.CombatStart = math.huge
     GS.Talent11, GS.Talent12, GS.Talent13, GS.Talent21, GS.Talent22, GS.Talent23, GS.Talent31, GS.Talent32, GS.Talent33, GS.Talent41, GS.Talent42, GS.Talent43, GS.Talent51, GS.Talent52, GS.Talent53, GS.Talent61, GS.Talent62, GS.Talent63, GS.Talent71, GS.Talent72, GS.Talent73 = false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false
@@ -284,16 +286,9 @@ local _ = nil
         "Totem",
         "Not specified",
     }
-    GS.MobTargetsAurasToIgnore = {
-        "Arcane Protection",
-        "Water Bubble",
-    }
-    GS.AllyTargetsAurasToIgnore = {}
-
+    -- todo: populate with boss IDs
     GS.BossList = {}
-    -- todo: should healing dummies be under this?
-    -- todo: should tanking dummies be under this?
-    -- todo: should dummies inside dungeons and raids be under this?
+    -- todo: should healing/tanking/instance dummies be under this?
     GS.DummiesID = {
         31144, -- 080
         31146, -- ???
@@ -404,10 +399,11 @@ local _ = nil
         "Pol",
         "Franzok",
         "Grom'kar Firemender",
+        "Blade Dancer Illianna",
     }
 
     GS.SpellData = {
-        AffectedByHaste = {key = {}, value = {}, size = 19},
+        AffectedByHaste = {Key = {}, Value = {}, Size = 19},
         SpellNameRange = {
             "Insanity",
             "Expel Harm",
@@ -432,59 +428,59 @@ local _ = nil
         [106830] = 106832
     }
     -- Paladin
-        GS.SpellData.AffectedByHaste.key[1] = 20473 -- Holy Shock
-        GS.SpellData.AffectedByHaste.key[2] = 20271 -- Judgment
-        GS.SpellData.AffectedByHaste.key[3] = 35395 -- CS
-        GS.SpellData.AffectedByHaste.key[4] = 53595 -- HotR
-        GS.SpellData.AffectedByHaste.key[5] = 26573 -- Consecration
-        GS.SpellData.AffectedByHaste.key[6] = 119072 -- Holy Wrath
-        GS.SpellData.AffectedByHaste.key[7] = 31935 -- Avenger's Shield
-        GS.SpellData.AffectedByHaste.key[8] = 53600 -- SotR
-        GS.SpellData.AffectedByHaste.key[9] = 879 -- Exorcism
-        GS.SpellData.AffectedByHaste.key[10] = 122032 -- Exorcism
-        GS.SpellData.AffectedByHaste.key[11] = 24275 -- Hammer of Wrath
-            GS.SpellData.AffectedByHaste.value[1] = 6
-            GS.SpellData.AffectedByHaste.value[2] = 6
-            GS.SpellData.AffectedByHaste.value[3] = 4.5
-            GS.SpellData.AffectedByHaste.value[4] = 4.5
-            GS.SpellData.AffectedByHaste.value[5] = 9
-            GS.SpellData.AffectedByHaste.value[6] = 15
-            GS.SpellData.AffectedByHaste.value[7] = 15
-            GS.SpellData.AffectedByHaste.value[8] = 1.5
-            GS.SpellData.AffectedByHaste.value[9] = 15
-            GS.SpellData.AffectedByHaste.value[10] = 15
-            GS.SpellData.AffectedByHaste.value[11] = 6
+        GS.SpellData.AffectedByHaste.Key[1] = 20473 -- Holy Shock
+        GS.SpellData.AffectedByHaste.Key[2] = 20271 -- Judgment
+        GS.SpellData.AffectedByHaste.Key[3] = 35395 -- CS
+        GS.SpellData.AffectedByHaste.Key[4] = 53595 -- HotR
+        GS.SpellData.AffectedByHaste.Key[5] = 26573 -- Consecration
+        GS.SpellData.AffectedByHaste.Key[6] = 119072 -- Holy Wrath
+        GS.SpellData.AffectedByHaste.Key[7] = 31935 -- Avenger's Shield
+        GS.SpellData.AffectedByHaste.Key[8] = 53600 -- SotR
+        GS.SpellData.AffectedByHaste.Key[9] = 879 -- Exorcism
+        GS.SpellData.AffectedByHaste.Key[10] = 122032 -- Exorcism
+        GS.SpellData.AffectedByHaste.Key[11] = 24275 -- Hammer of Wrath
+            GS.SpellData.AffectedByHaste.Value[1] = 6
+            GS.SpellData.AffectedByHaste.Value[2] = 6
+            GS.SpellData.AffectedByHaste.Value[3] = 4.5
+            GS.SpellData.AffectedByHaste.Value[4] = 4.5
+            GS.SpellData.AffectedByHaste.Value[5] = 9
+            GS.SpellData.AffectedByHaste.Value[6] = 15
+            GS.SpellData.AffectedByHaste.Value[7] = 15
+            GS.SpellData.AffectedByHaste.Value[8] = 1.5
+            GS.SpellData.AffectedByHaste.Value[9] = 15
+            GS.SpellData.AffectedByHaste.Value[10] = 15
+            GS.SpellData.AffectedByHaste.Value[11] = 6
 
     -- Shaman
-        GS.SpellData.AffectedByHaste.key[12] = 17364 -- Stormstrike
-        GS.SpellData.AffectedByHaste.key[13] = 115356 -- Windstrike
-        GS.SpellData.AffectedByHaste.key[14] = 60103 -- Lava Lash
-        GS.SpellData.AffectedByHaste.key[15] = 8050 -- Flame Shock
-        GS.SpellData.AffectedByHaste.key[16] = 8056 -- Frost Shock
-        GS.SpellData.AffectedByHaste.key[17] = 8042 -- Earth Shock
-        GS.SpellData.AffectedByHaste.key[18] = 73680 -- Unleash Elements
-        GS.SpellData.AffectedByHaste.key[19] = 1535 -- Fire Nova
-            GS.SpellData.AffectedByHaste.value[12] = 7.5
-            GS.SpellData.AffectedByHaste.value[13] = 7.5
-            GS.SpellData.AffectedByHaste.value[14] = 10.5
-            GS.SpellData.AffectedByHaste.value[15] = 6
-            GS.SpellData.AffectedByHaste.value[16] = 6
-            GS.SpellData.AffectedByHaste.value[17] = 6
-            GS.SpellData.AffectedByHaste.value[18] = 15
-            GS.SpellData.AffectedByHaste.value[19] = 4.5
+        GS.SpellData.AffectedByHaste.Key[12] = 17364 -- Stormstrike
+        GS.SpellData.AffectedByHaste.Key[13] = 115356 -- Windstrike
+        GS.SpellData.AffectedByHaste.Key[14] = 60103 -- Lava Lash
+        GS.SpellData.AffectedByHaste.Key[15] = 8050 -- Flame Shock
+        GS.SpellData.AffectedByHaste.Key[16] = 8056 -- Frost Shock
+        GS.SpellData.AffectedByHaste.Key[17] = 8042 -- Earth Shock
+        GS.SpellData.AffectedByHaste.Key[18] = 73680 -- Unleash Elements
+        GS.SpellData.AffectedByHaste.Key[19] = 1535 -- Fire Nova
+            GS.SpellData.AffectedByHaste.Value[12] = 7.5
+            GS.SpellData.AffectedByHaste.Value[13] = 7.5
+            GS.SpellData.AffectedByHaste.Value[14] = 10.5
+            GS.SpellData.AffectedByHaste.Value[15] = 6
+            GS.SpellData.AffectedByHaste.Value[16] = 6
+            GS.SpellData.AffectedByHaste.Value[17] = 6
+            GS.SpellData.AffectedByHaste.Value[18] = 15
+            GS.SpellData.AffectedByHaste.Value[19] = 4.5
 
     GS.Warrior = {}
     GS.Paladin = {
     }
     GS.Rogue = {
-        cpMaxSpend = 5
     }
     GS.Priest = {
         Voidform = {},
         ApparitionsInFlight = 0
     }
     GS.Monk = {
-        lastCast = 0
+        LastCast = 0,
+        SoothingMistTarget = 0,
     }
     GS.Druid = {
         RakeMultiplier = {}
@@ -499,7 +495,7 @@ local _ = nil
     end
 
     function GS.IncreaseRotationCacheCounter()
-        GS.rotationCacheCounter = GS.rotationCacheCounter + 1
+        GS.RotationCacheCounter = GS.RotationCacheCounter + 1
     end
 
     function GS.RaFQuesting()
@@ -539,11 +535,10 @@ local _ = nil
             GS.SpellNotKnown  = {}
             GS.SpellOutranged = {}
             GS.CacheTalents()
-            GS.Rogue.cpMaxSpend = (GS.Talent31 and 6 or 5)
             -- identical
             return
         elseif registeredEvent == "PLAYER_REGEN_ENABLED" then
-            -- GS.Monk.lastCast = 0
+            -- GS.Monk.LastCast = 0
             return
         elseif registeredEvent == "COMBAT_LOG_EVENT_UNFILTERED" then
             local timeNow = GetTime()
@@ -555,16 +550,10 @@ local _ = nil
 
             if sourceName ~= UnitName("player") and not tContains(GS.MobsThatInterrupt, sourceName) then return end
 
-            if GS.WaitForCombatLog then GS.WaitForCombatLog = false end
-
             if event == "SPELL_CAST_START" then  -- MobsThatInterrupt functionality would go in here + healing and projectile throttles
-                -- GS.SpellThrottle = (GetTime()+math.random(40, 240)*.001)
-
-                -- Priest
-
                 return
             end
-            if event == "SPELL_CAST_FAILED" then  -- unthrottle        functionality would go in here + queueing
+            if event == "SPELL_CAST_FAILED" then
                 if failedType ~= "Another action is in progress" and failedType ~= "Not yet recovered" and failedType ~= "You can't do that yet" then
                     GS.SpellThrottle = 0
                     -- GS.LastTargetCast = nil
@@ -573,18 +562,27 @@ local _ = nil
 
                 return
             end
-            if event == "SPELL_CAST_SUCCESS" then  -- unthrottle        functionality would go in here + queueing success + healing and multi-step throttle
-                if spellID ~= 147193 then
+            if event == "SPELL_CAST_SUCCESS" then 
+                if GS.WaitForCombatLog then GS.WaitForCombatLog = false end
+                
+                if spellID ~= 147193 then -- Ghosts shadow priests
                     GS.SpellThrottle = (GetTime()+math.random(20, 60)*.001)+GS.SpellCDDuration(61304)
-                end
-
-                if GSR.Class == "MONK" and GS.Spec == 3 --[[and spellID ~= roll and spellID ~= energizing_elixir]] then
-                    GS.Monk.lastCast = spellID
                 end
 
                 -- Priest
                     if spellID == 147193 and GS.Talent52 then
                         GS.Priest.ApparitionsInFlight = GS.Priest.ApparitionsInFlight + 1
+                        return
+                    end
+
+                -- Monk
+                    if spellID == 115175 then
+                        GS.Monk.SoothingMistTarget = destGUID
+                        return
+                    end
+
+                    if GSR.Class == "MONK" and GS.Spec == 3 and tContains(GS.Monk.HitComboTable, spellID) then
+                        GS.Monk.LastCast = spellID
                         return
                     end
 
@@ -716,8 +714,6 @@ local _ = nil
             if (not GSR.Mobs or not tContains(GS.MobTargets, unitPlaceholder)) and (not GSR.Healing or GS.AllyNotDuplicate(unitPlaceholder)) -- make sure it isn't a duplicate
             and ObjectExists(unitPlaceholder) and UnitExists(unitPlaceholder) -- make sure it exists
             and (bit.band(ObjectType(unitPlaceholder), 0x8) > 0--[[ or bit.band(ObjectType(unitPlaceholder), 0x10) > 0]]) -- make sure it's a mob or player
-            -- and (not GSR.Mobs or not tContains(GS.MobNamesToIgnore, UnitName(unitPlaceholder)) and not tContains(GS.MobTypesToIgnore, UnitCreatureType(unitPlaceholder)) and GS.MobTargetsAuraBlacklist(unitPlaceholder)) -- make sure it's not something we want to ignore todo: make the aura blacklist function
-            -- and (not GSR.Healing or GS.AllyTargetsAuraBlacklist(unitPlaceholder)) -- make sure it's not something we want to ignore
             then
                 if not GSR.PvPMode and --[[GSR.Mobs and]] bit.band(ObjectType(unitPlaceholder), 0x8) > 0 and bit.band(ObjectType(unitPlaceholder), 0x10) == 0 then -- mobs
                     if GSR.Healing and UnitInParty(unitPlaceholder) then -- friendly mobs
@@ -753,16 +749,16 @@ local _ = nil
                 _G["removeMobTargets"..i] = false
             end
         end
-        -- for i = 1, allyTargetsSize do
-        --  unitPlaceholder = GS.AllyTargets.Player
-        --  if not GSR.Healing or not ObjectExists(unitPlaceholder) or not UnitExists(unitPlaceholder) or GS.Health(unitPlaceholder) == 0 or UnitName(unitPlaceholder) == "Unknown" then _G["removeAllyTargets"..i] = true end
-        -- end
-        -- for i = allyTargetsSize, 1, -1 do
-        --  if _G["removeAllyTargets"..i] then
-        --      table.remove(GS.AllyTargets, i)
-        --      _G["removeAllyTargets"..i] = false
-        --  end
-        -- end
+        for i = 1, allyTargetsSize do
+         unitPlaceholder = GS.AllyTargets[i].Player
+         if not GSR.Healing or not ObjectExists(unitPlaceholder) or not UnitExists(unitPlaceholder) or GS.Health(unitPlaceholder) == 0 or UnitName(unitPlaceholder) == "Unknown" then _G["removeAllyTargets"..i] = true end
+        end
+        for i = allyTargetsSize, 1, -1 do
+         if _G["removeAllyTargets"..i] then
+             table.remove(GS.AllyTargets, i)
+             _G["removeAllyTargets"..i] = false
+         end
+        end
 
         mobTargetsSize = #GS.MobTargets
         allyTargetsSize = #GS.AllyTargets
@@ -892,19 +888,19 @@ local _ = nil
 
 -- Bread
     GS.SavedReturns = {
-        SIR = {rotationCacheCounter = 0},
-        SCA = {rotationCacheCounter = 0},
-        SpellIsUsable = {rotationCacheCounter = 0},
-        SpellIsUsableExecute = {rotationCacheCounter = 0},
-        SpellCDDuration = {rotationCacheCounter = 0},
-        PoolCheck = {rotationCacheCounter = 0},
-        InRange = {rotationCacheCounter = 0},
-        InRangeNew = {rotationCacheCounter = 0},
-        FracCalc = {rotationCacheCounter = 0},
-        GCD = {rotationCacheCounter = 0},
-        IsCAOCH = {rotationCacheCounter = 0},
-        IsCA = {rotationCacheCounter = 0},
-        IsCH = {rotationCacheCounter = 0},
+        SIR = {RotationCacheCounter = 0},
+        SCA = {RotationCacheCounter = 0},
+        SpellIsUsable = {RotationCacheCounter = 0},
+        SpellIsUsableExecute = {RotationCacheCounter = 0},
+        SpellCDDuration = {RotationCacheCounter = 0},
+        PoolCheck = {RotationCacheCounter = 0},
+        InRange = {RotationCacheCounter = 0},
+        InRangeNew = {RotationCacheCounter = 0},
+        FracCalc = {RotationCacheCounter = 0},
+        GCD = {RotationCacheCounter = 0},
+        IsCAOCH = {RotationCacheCounter = 0},
+        IsCA = {RotationCacheCounter = 0},
+        IsCH = {RotationCacheCounter = 0},
     }
     -- Combat Check Functions
         function GS.ValidTarget()
@@ -932,6 +928,10 @@ local _ = nil
             return false
         end
 
+        GS.MobTargetsAurasToIgnore = {
+            "Arcane Protection",
+            "Water Bubble",
+        }
         function GS.MobTargetsAuraBlacklist(object)
             local auraToCheck = nil
             for i = 1, #GS.MobTargetsAurasToIgnore do
@@ -941,6 +941,9 @@ local _ = nil
             return true
         end
 
+        GS.AllyTargetsAurasToIgnore = {
+            
+        }
         function GS.AllyTargetsAuraBlacklist(object)
             local auraToCheck = nil
             for i = 1, #GS.AllyTargetsAurasToIgnore do
@@ -951,12 +954,6 @@ local _ = nil
         end
 
     -- Gear Functions
-        do
-            local whisper_of_the_nathrezim = 137020
-            function GS.IsEquipped(itemID) -- todo: implement this
-                return false
-            end
-        end
 
     -- Sorting Functions
         function GS.SortMobTargetsByLowestHealth(a,b)
@@ -964,11 +961,11 @@ local _ = nil
         end
 
         function GS.SortMobTargetsByHighestTTD(a,b)
-            return not GS.GetTTD(a) > GS.GetTTD(b)
+            return GS.GetTTD(a) == math.huge and false or GS.GetTTD(b) == math.huge and true or GS.GetTTD(a) > GS.GetTTD(b)
         end
 
         function GS.SortMobTargetsByLowestTTD(a,b)
-            return not GS.GetTTD(a) < GS.GetTTD(b)
+            return GS.GetTTD(a) < GS.GetTTD(b)
         end
 
         function GS.SortMobTargetsByLowestDistance(a,b)
@@ -999,28 +996,28 @@ local _ = nil
         function GS.IsCAOCH(unit)
             if not unit then unit = "player" end
             local unitPointer = ObjectPointer(unit)
-            if GSR.Dev.CachedFunctions and GS.SavedReturns.IsCAOCH.rotationCacheCounter == GS.rotationCacheCounter then
-                if GS.SavedReturns.IsCAOCH[GS.rotationCacheCounter..unitPointer] then return GS.SavedReturns.IsCAOCH[GS.rotationCacheCounter..unitPointer] end
+            if GSR.Dev.CachedFunctions and GS.SavedReturns.IsCAOCH.RotationCacheCounter == GS.RotationCacheCounter then
+                if GS.SavedReturns.IsCAOCH[GS.RotationCacheCounter..unitPointer] then return GS.SavedReturns.IsCAOCH[GS.RotationCacheCounter..unitPointer] end
             end
-            if ObjectExists(unit) and UnitExists(unit) and (UnitCastingInfo(unit) or UnitChannelInfo(unit)) then GS.SavedReturns.IsCAOCH[GS.rotationCacheCounter..unitPointer] = true return true else GS.SavedReturns.IsCAOCH[GS.rotationCacheCounter..unitPointer] = false return false end
+            if ObjectExists(unit) and UnitExists(unit) and (UnitCastingInfo(unit) or UnitChannelInfo(unit)) then GS.SavedReturns.IsCAOCH[GS.RotationCacheCounter..unitPointer] = true return true else GS.SavedReturns.IsCAOCH[GS.RotationCacheCounter..unitPointer] = false return false end
         end
 
         function GS.IsCA(unit)
             if not unit then unit = "player" end
             local unitPointer = ObjectPointer(unit)
-            if GSR.Dev.CachedFunctions and GS.SavedReturns.IsCA.rotationCacheCounter == GS.rotationCacheCounter then
-                if GS.SavedReturns.IsCA[GS.rotationCacheCounter..unitPointer] then return GS.SavedReturns.IsCA[GS.rotationCacheCounter..unitPointer] end
+            if GSR.Dev.CachedFunctions and GS.SavedReturns.IsCA.RotationCacheCounter == GS.RotationCacheCounter then
+                if GS.SavedReturns.IsCA[GS.RotationCacheCounter..unitPointer] then return GS.SavedReturns.IsCA[GS.RotationCacheCounter..unitPointer] end
             end
-            if ObjectExists(unit) and UnitExists(unit) and UnitCastingInfo(unit) then GS.SavedReturns.IsCA[GS.rotationCacheCounter..unitPointer] = true return true else GS.SavedReturns.IsCA[GS.rotationCacheCounter..unitPointer] = false return false end
+            if ObjectExists(unit) and UnitExists(unit) and UnitCastingInfo(unit) then GS.SavedReturns.IsCA[GS.RotationCacheCounter..unitPointer] = true return true else GS.SavedReturns.IsCA[GS.RotationCacheCounter..unitPointer] = false return false end
         end
 
         function GS.IsCH(unit)
             if not unit then unit = "player" end
             local unitPointer = ObjectPointer(unit)
-            if GSR.Dev.CachedFunctions and GS.SavedReturns.IsCH.rotationCacheCounter == GS.rotationCacheCounter then
-                if GS.SavedReturns.IsCH[GS.rotationCacheCounter..unitPointer] then return GS.SavedReturns.IsCH[GS.rotationCacheCounter..unitPointer] end
+            if GSR.Dev.CachedFunctions and GS.SavedReturns.IsCH.RotationCacheCounter == GS.RotationCacheCounter then
+                if GS.SavedReturns.IsCH[GS.RotationCacheCounter..unitPointer] then return GS.SavedReturns.IsCH[GS.RotationCacheCounter..unitPointer] end
             end
-            if ObjectExists(unit) and UnitExists(unit) and UnitChannelInfo(unit) then GS.SavedReturns.IsCH[GS.rotationCacheCounter..unitPointer] = true return true else GS.SavedReturns.IsCH[GS.rotationCacheCounter..unitPointer] = false return false end
+            if ObjectExists(unit) and UnitExists(unit) and UnitChannelInfo(unit) then GS.SavedReturns.IsCH[GS.RotationCacheCounter..unitPointer] = true return true else GS.SavedReturns.IsCH[GS.RotationCacheCounter..unitPointer] = false return false end
         end
 
         function GS.Distance(target, base) -- compares distance between two objects if base == nil than base = player
@@ -1034,10 +1031,10 @@ local _ = nil
             return math.sqrt(((X2 - X1) ^ 2) + ((Y2 - Y1) ^ 2) + ((Z2 - Z1) ^ 2))
         end
 
-        function GS.UnitIsBoss(unit) -- checks the defined boss list todo: change to unit ids
+        function GS.UnitIsBoss(unit) -- checks the defined boss list
             if not unit then unit = "target" end
             if ObjectExists(unit) and UnitExists(unit) then
-                if tContains(GS.BossList, UnitName(unit)) then
+                if tContains(GS.BossList, GS.GetUnitID(unit)) then
                     return true
                 else
                     return false
@@ -1076,22 +1073,22 @@ local _ = nil
 
         function GS.SpellCDDuration(spell, max)
             local maxString = tostring(max)
-            if GSR.Dev.CachedFunctions and GS.SavedReturns.SpellCDDuration.rotationCacheCounter == GS.rotationCacheCounter then
-                if GS.SavedReturns.SpellCDDuration[GS.rotationCacheCounter..spell..maxString] then return GS.SavedReturns.SpellCDDuration[GS.rotationCacheCounter..spell..maxString] end
+            if GSR.Dev.CachedFunctions and GS.SavedReturns.SpellCDDuration.RotationCacheCounter == GS.RotationCacheCounter then
+                if GS.SavedReturns.SpellCDDuration[GS.RotationCacheCounter..spell..maxString] then return GS.SavedReturns.SpellCDDuration[GS.RotationCacheCounter..spell..maxString] end
             end
             local start, duration = GetSpellCooldown(spell)
             if max then
-                for i = 1, GS.SpellData.AffectedByHaste.size do
-                    if GS.SpellData.AffectedByHaste.key[i] == spell then return GS.SpellData.AffectedByHaste.value[i]/(1+GetHaste()*.01) end
+                for i = 1, GS.SpellData.AffectedByHaste.Size do
+                    if GS.SpellData.AffectedByHaste.Key[i] == spell then return GS.SpellData.AffectedByHaste.Value[i]/(1+GetHaste()*.01) end
                 end
-                GS.SavedReturns.SpellCDDuration[GS.rotationCacheCounter..spell..maxString] = GetSpellBaseCooldown(spell)*.001
-                return GS.SavedReturns.SpellCDDuration[GS.rotationCacheCounter..spell..maxString]
+                GS.SavedReturns.SpellCDDuration[GS.RotationCacheCounter..spell..maxString] = GetSpellBaseCooldown(spell)*.001
+                return GS.SavedReturns.SpellCDDuration[GS.RotationCacheCounter..spell..maxString]
             elseif start == 0 then
-                GS.SavedReturns.SpellCDDuration[GS.rotationCacheCounter..spell..maxString] = 0
+                GS.SavedReturns.SpellCDDuration[GS.RotationCacheCounter..spell..maxString] = 0
                 return 0
             else
-                GS.SavedReturns.SpellCDDuration[GS.rotationCacheCounter..spell..maxString] = (start + duration - GetTime())
-                return GS.SavedReturns.SpellCDDuration[GS.rotationCacheCounter..spell..maxString]
+                GS.SavedReturns.SpellCDDuration[GS.RotationCacheCounter..spell..maxString] = (start + duration - GetTime())
+                return GS.SavedReturns.SpellCDDuration[GS.RotationCacheCounter..spell..maxString]
             end
         end
 
@@ -1106,8 +1103,8 @@ local _ = nil
 
         function GS.SIR(spell, execute)
             local executeString = tostring(execute)
-            if GSR.Dev.CachedFunctions and GS.SavedReturns.SIR.rotationCacheCounter == GS.rotationCacheCounter then
-                if GS.SavedReturns.SIR[GS.rotationCacheCounter..spell..executeString] then return GS.SavedReturns.SIR[GS.rotationCacheCounter..spell..executeString] end
+            if GSR.Dev.CachedFunctions and GS.SavedReturns.SIR.RotationCacheCounter == GS.RotationCacheCounter then
+                if GS.SavedReturns.SIR[GS.RotationCacheCounter..spell..executeString] then return GS.SavedReturns.SIR[GS.RotationCacheCounter..spell..executeString] end
             end
             if type(spell) ~= "string" and type(spell) ~= "number" then return false end
             local spellTransform = 0; if GS.SpellKnownTransformTable[spell] then spellTransform = GS.SpellKnownTransformTable[spell] end
@@ -1116,7 +1113,7 @@ local _ = nil
                     GS.SpellNotKnown[spellTransform ~= 0 and spellTransform or spell] = true
                     GS.Log("Spell not known: "..(spellTransform ~= 0 and spellTransform or spell).." Please Verify.")
                 end
-                GS.SavedReturns.SIR[GS.rotationCacheCounter..spell..executeString] = false
+                GS.SavedReturns.SIR[GS.RotationCacheCounter..spell..executeString] = false
                 return false
             end
             -- if (type(spell) == "number" and GetSpellInfo(GetSpellInfo(spell)) or type(spell) == "string" and GetSpellLink(spell) or IsSpellKnown(spell) or spell == 77758 --[[or UnitLevel("player") == 100]]) -- thrash bear
@@ -1126,10 +1123,10 @@ local _ = nil
             and (UnitMovementFlags("player") == 0 or select(4, GetSpellInfo(spell)) <= 0 or spell == 77767 or spell == 56641 or spell == aimed_shot or spell == 2948 or not GS.AuraRemaining("player", 108839, (select(4, GetSpellInfo(spell))*0.001)) or not GS.AuraRemaining("player", 79206, (select(4, GetSpellInfo(spell))*0.001)))
             -- Ice Floes, SpiritWalker's Grace
             then
-                GS.SavedReturns.SIR[GS.rotationCacheCounter..spell..executeString] = true
+                GS.SavedReturns.SIR[GS.RotationCacheCounter..spell..executeString] = true
                 return true
             else
-                GS.SavedReturns.SIR[GS.rotationCacheCounter..spell..executeString] = false
+                GS.SavedReturns.SIR[GS.RotationCacheCounter..spell..executeString] = false
                 return false
             end
         end
@@ -1137,13 +1134,14 @@ local _ = nil
         function GS.SCA(spell, unit, casting, execute)
             local castingString, executeString = tostring(casting), tostring(execute)
             if not unit then unit = "target" end
+            if not ObjectExists(unit) then return false end
             local unitPointer = ObjectPointer(unit)
-            if GSR.Dev.CachedFunctions and GS.SavedReturns.SCA.rotationCacheCounter == GS.rotationCacheCounter then
-                if GS.SavedReturns.SCA[GS.rotationCacheCounter..spell..unitPointer..castingString..executeString] then return GS.SavedReturns.SCA[GS.rotationCacheCounter..spell..unitPointer..castingString..executeString] end
+            if GSR.Dev.CachedFunctions and GS.SavedReturns.SCA.RotationCacheCounter == GS.RotationCacheCounter then
+                if GS.SavedReturns.SCA[GS.RotationCacheCounter..spell..unitPointer..castingString..executeString] then return GS.SavedReturns.SCA[GS.RotationCacheCounter..spell..unitPointer..castingString..executeString] end
             end
-            if tContains(GS.DoTThrottleList, spell) and unit == GS.DoTThrottle then GS.SavedReturns.SCA[GS.rotationCacheCounter..spell..unitPointer..castingString..executeString] = false return false end
+            if tContains(GS.DoTThrottleList, spell) and unit == GS.DoTThrottle then GS.SavedReturns.SCA[GS.RotationCacheCounter..spell..unitPointer..castingString..executeString] = false return false end
             if string.sub(unit, 1, 6) == "Player" then unit = ObjectPointer("player") end
-            if ObjectExists(unit) and UnitExists(unit)
+            if UnitExists(unit)
             and GS.SIR(spell, execute)
             and (GS.InRange(spell, unit) or UnitName(unit) == "Al'Akir") -- fixme: inrange needs an overhaul in the distant future, example Al'Akir @framework @notimportant
             and (not GS.IsCAOCH("player") or casting--[[ and UnitChannelInfo("player") ~= GetSpellInfo(spell) and UnitCastingInfo("player") ~= GetSpellInfo(spell)]])
@@ -1151,55 +1149,55 @@ local _ = nil
             and (not GSR.LoS or GS.LOS(unit)) -- fixme: LOS @framework
             and (not GSR.CCed or not GS.UnitIsCCed(unit))
             then
-                GS.SavedReturns.SCA[GS.rotationCacheCounter..spell..unitPointer..castingString..executeString] = true
+                GS.SavedReturns.SCA[GS.RotationCacheCounter..spell..unitPointer..castingString..executeString] = true
                 return true
             else
-                GS.SavedReturns.SCA[GS.rotationCacheCounter..spell..unitPointer..castingString..executeString] = false
+                GS.SavedReturns.SCA[GS.RotationCacheCounter..spell..unitPointer..castingString..executeString] = false
                 return false
             end
         end
 
         function GS.SpellIsUsable(spell)
-            if GSR.Dev.CachedFunctions and GS.SavedReturns.SpellIsUsable.rotationCacheCounter == GS.rotationCacheCounter then
-                if GS.SavedReturns.SpellIsUsable[GS.rotationCacheCounter..spell] then return GS.SavedReturns.SpellIsUsable[GS.rotationCacheCounter..spell] end
+            if GSR.Dev.CachedFunctions and GS.SavedReturns.SpellIsUsable.RotationCacheCounter == GS.RotationCacheCounter then
+                if GS.SavedReturns.SpellIsUsable[GS.RotationCacheCounter..spell] then return GS.SavedReturns.SpellIsUsable[GS.RotationCacheCounter..spell] end
             end
             local isUsable, notEnoughMana = IsUsableSpell(spell)
             if isUsable and not notEnoughMana then
-                GS.SavedReturns.SpellIsUsable[GS.rotationCacheCounter..spell] = true
+                GS.SavedReturns.SpellIsUsable[GS.RotationCacheCounter..spell] = true
                 return true
             else
-                GS.SavedReturns.SpellIsUsable[GS.rotationCacheCounter..spell] = false
+                GS.SavedReturns.SpellIsUsable[GS.RotationCacheCounter..spell] = false
                 return false
             end
         end
 
         function GS.SpellIsUsableExecute(spell)
-            if GSR.Dev.CachedFunctions and GS.SavedReturns.SpellIsUsableExecute.rotationCacheCounter == GS.rotationCacheCounter then
-                if GS.SavedReturns.SpellIsUsableExecute[GS.rotationCacheCounter..spell] then return GS.SavedReturns.SpellIsUsableExecute[GS.rotationCacheCounter..spell] end
+            if GSR.Dev.CachedFunctions and GS.SavedReturns.SpellIsUsableExecute.RotationCacheCounter == GS.RotationCacheCounter then
+                if GS.SavedReturns.SpellIsUsableExecute[GS.RotationCacheCounter..spell] then return GS.SavedReturns.SpellIsUsableExecute[GS.RotationCacheCounter..spell] end
             end
             local isUsable, notEnoughMana = IsUsableSpell(spell)
             if not notEnoughMana then
-                GS.SavedReturns.SpellIsUsableExecute[GS.rotationCacheCounter..spell] = true
+                GS.SavedReturns.SpellIsUsableExecute[GS.RotationCacheCounter..spell] = true
                 return true
             else
-                GS.SavedReturns.SpellIsUsableExecute[GS.rotationCacheCounter..spell] = false
+                GS.SavedReturns.SpellIsUsableExecute[GS.RotationCacheCounter..spell] = false
                 return false
             end
         end
 
         function GS.PoolCheck(spell)
-            if GSR.Dev.CachedFunctions and GS.SavedReturns.PoolCheck.rotationCacheCounter == GS.rotationCacheCounter then
-                if GS.SavedReturns.PoolCheck[GS.rotationCacheCounter..spell] then return GS.SavedReturns.PoolCheck[GS.rotationCacheCounter..spell] end
+            if GSR.Dev.CachedFunctions and GS.SavedReturns.PoolCheck.RotationCacheCounter == GS.RotationCacheCounter then
+                if GS.SavedReturns.PoolCheck[GS.RotationCacheCounter..spell] then return GS.SavedReturns.PoolCheck[GS.RotationCacheCounter..spell] end
             end
             local isUsable, notEnoughMana = IsUsableSpell(spell)
             if GS.SpellCDDuration(spell) <= 0
             and not isUsable
             and notEnoughMana
             then
-                GS.SavedReturns.PoolCheck[GS.rotationCacheCounter..spell] = true
+                GS.SavedReturns.PoolCheck[GS.RotationCacheCounter..spell] = true
                 return true
             else
-                GS.SavedReturns.PoolCheck[GS.rotationCacheCounter..spell] = false
+                GS.SavedReturns.PoolCheck[GS.RotationCacheCounter..spell] = false
                 return false
             end
         end
@@ -1207,8 +1205,8 @@ local _ = nil
         function GS.InRangeNew(spell, unit)
             if not unit then unit = "target" end
             local unitPointer = ObjectPointer(unit)
-            if GSR.Dev.CachedFunctions and GS.SavedReturns.InRangeNew.rotationCacheCounter == GS.rotationCacheCounter then
-                if GS.SavedReturns.InRangeNew[GS.rotationCacheCounter..spell..unitPointer] then return GS.SavedReturns.InRangeNew[GS.rotationCacheCounter..spell..unitPointer] end
+            if GSR.Dev.CachedFunctions and GS.SavedReturns.InRangeNew.RotationCacheCounter == GS.RotationCacheCounter then
+                if GS.SavedReturns.InRangeNew[GS.RotationCacheCounter..spell..unitPointer] then return GS.SavedReturns.InRangeNew[GS.RotationCacheCounter..spell..unitPointer] end
             end
             local spellToString
             -- if tonumber(spell) then spellToString = GetSpellInfo(spell) end
@@ -1218,7 +1216,7 @@ local _ = nil
                     local combatReach = UnitCombatReach("player")+UnitCombatReach("target")
                     local movingBenefit = 0
                     -- local movingBenefit = (UnitMovementFlags("player") > 0 and UnitMovementFlags("target") > 0 and (8/3) or 0)
-                    GS.SavedReturns.InRangeNew[GS.rotationCacheCounter..spell..unitPointer] = (GS.Distance("target") < ((5 > (combatReach+4/3) and 5 or combatReach+4/3) + movingBenefit))
+                    GS.SavedReturns.InRangeNew[GS.RotationCacheCounter..spell..unitPointer] = (GS.Distance("target") < ((5 > (combatReach+4/3) and 5 or combatReach+4/3) + movingBenefit))
                     return GS.Distance("target") < ((5 > (combatReach+4/3) and 5 or combatReach+4/3) + movingBenefit)
                 elseif minRange == 0 then
                     local movingBenefit = 0
@@ -1233,8 +1231,8 @@ local _ = nil
         function GS.InRange(spell, unit)
             if not unit then unit = "target" end
             local unitPointer = ObjectPointer(unit)
-            if GSR.Dev.CachedFunctions and GS.SavedReturns.InRange.rotationCacheCounter == GS.rotationCacheCounter then
-                if GS.SavedReturns.InRange[GS.rotationCacheCounter..spell..unitPointer] then return GS.SavedReturns.InRange[GS.rotationCacheCounter..spell..unitPointer] end
+            if GSR.Dev.CachedFunctions and GS.SavedReturns.InRange.RotationCacheCounter == GS.RotationCacheCounter then
+                if GS.SavedReturns.InRange[GS.RotationCacheCounter..spell..unitPointer] then return GS.SavedReturns.InRange[GS.RotationCacheCounter..spell..unitPointer] end
             end
             local spellToString
 
@@ -1244,22 +1242,22 @@ local _ = nil
                 local inRange = IsSpellInRange(spellToString, unit)
 
                 if inRange == 1 then
-                    GS.SavedReturns.InRange[GS.rotationCacheCounter..spell..unitPointer] = true
+                    GS.SavedReturns.InRange[GS.RotationCacheCounter..spell..unitPointer] = true
                     return true
                 elseif inRange == 0 then
                     if not GS.SpellOutranged[spell] then
                         GS.SpellOutranged[spell] = true
                         GS.Log("Spell out of Range: "..spell.." Please Verify.")
                     end
-                    GS.SavedReturns.InRange[GS.rotationCacheCounter..spell..unitPointer] = false
+                    GS.SavedReturns.InRange[GS.RotationCacheCounter..spell..unitPointer] = false
                     return false
                 elseif (tContains(GS.SpellData.SpellNameRange, spellToString) or tContains(GS.SpellData.SpellNameRange, "MM"..spellToString)) then
                     for i = 1, #GS.SpellData.SpellNameRange do
                         if GS.SpellData.SpellNameRange[i] == spellToString then
-                            GS.SavedReturns.InRange[GS.rotationCacheCounter..spell..unitPointer] = (GS.Distance(unit) <= GS.SpellData.SpellRange[i])
+                            GS.SavedReturns.InRange[GS.RotationCacheCounter..spell..unitPointer] = (GS.Distance(unit) <= GS.SpellData.SpellRange[i])
                             return GS.Distance(unit) <= GS.SpellData.SpellRange[i]
                         elseif GS.SpellData.SpellNameRange[i] == "MM"..spellToString then
-                            GS.SavedReturns.InRange[GS.rotationCacheCounter..spell..unitPointer] = (GS.Distance(unit) <= (GS.SpellData.SpellRange[i]*(1+GetMasteryEffect()/100)))
+                            GS.SavedReturns.InRange[GS.RotationCacheCounter..spell..unitPointer] = (GS.Distance(unit) <= (GS.SpellData.SpellRange[i]*(1+GetMasteryEffect()/100)))
                             return GS.Distance(unit) <= (GS.SpellData.SpellRange[i]*(1+GetMasteryEffect()/100))
                         end
                     end
@@ -1269,14 +1267,14 @@ local _ = nil
                     for i = 1, 200 do
                         if GetSpellBookItemName(i, "spell") == spellToString then
                             if IsSpellInRange(i, "spell", unit) == 1 then
-                                GS.SavedReturns.InRange[GS.rotationCacheCounter..spell..unitPointer] = true
+                                GS.SavedReturns.InRange[GS.RotationCacheCounter..spell..unitPointer] = true
                                 return true
                             else
                                 if not GS.SpellOutranged[spell] then
                                     GS.SpellOutranged[spell] = true
                                     GS.Log("Spell out of Range: "..spell.." Please Verify.")
                                 end
-                                GS.SavedReturns.InRange[GS.rotationCacheCounter..spell..unitPointer] = false
+                                GS.SavedReturns.InRange[GS.RotationCacheCounter..spell..unitPointer] = false
                                 return false
                             end
                         end
@@ -1289,9 +1287,9 @@ local _ = nil
             end
         end
 
-        function GS.FracCalc(mode, spell) -- todo: add normal spells and support hasted ones
-            if GSR.Dev.CachedFunctions and GS.SavedReturns.FracCalc.rotationCacheCounter == GS.rotationCacheCounter then
-                if GS.SavedReturns.FracCalc[GS.rotationCacheCounter..mode..spell] then return GS.SavedReturns.FracCalc[GS.rotationCacheCounter..mode..spell] end
+        function GS.FracCalc(mode, spell)
+            if GSR.Dev.CachedFunctions and GS.SavedReturns.FracCalc.RotationCacheCounter == GS.RotationCacheCounter then
+                if GS.SavedReturns.FracCalc[GS.RotationCacheCounter..mode..spell] then return GS.SavedReturns.FracCalc[GS.RotationCacheCounter..mode..spell] end
             end
             if mode == "spell" then
                 local spellFrac = 0
@@ -1301,9 +1299,13 @@ local _ = nil
                     if cur >= 1 then spellFrac = spellFrac + cur end
                     if spellFrac == max then return spellFrac end
                     spellFrac = spellFrac + (GetTime()-start)/duration
-                    GS.SavedReturns.FracCalc[GS.rotationCacheCounter..mode..spell] = spellFrac
+                    GS.SavedReturns.FracCalc[GS.RotationCacheCounter..mode..spell] = spellFrac
                     return spellFrac
                 else
+                    -- local start, duration = GetSpellCooldown(spell)
+                    -- if start == 0 then return 1 end
+                    -- spellFrac = (GetTime()-start)/duration
+                    -- GS.SavedReturns.FracCalc[GS.RotationCacheCounter..mode..spell] = spellFrac
                     return print("Tried to calculate fraction of a non charge based skill")
                 end
             elseif mode == "rune" then
@@ -1332,7 +1334,7 @@ local _ = nil
             return lowestMobSoFar
         end
 
-        function GS.HealingAmount(spell) -- todo: make sure each one of these works
+        function GS.HealingAmount(spell)
             GSHealingTooltipFrame:ClearLines()
             GSHealingTooltipFrame:SetSpellByID(61304)
             GSHealingTooltipFrame:SetAlpha(0)
@@ -1389,19 +1391,6 @@ local _ = nil
                 healingStringPlaceholderOne = string.match(GSHealingTooltipFrameTextLeft4:GetText(), "%d+[,.]?%d*")
                 healingStringPlaceholderOne = string.gsub(healingStringPlaceholderOne, "%D", "")
                 return tonumber(healingStringPlaceholderOne)
-            
-            elseif spell == "Penance" then
-                GSHealingTooltipFrame:SetSpellByID(47540)
-                GSHealingTooltipFrame:SetAlpha(0)
-                healingStringPlaceholderOne = string.match(GSHealingTooltipFrameTextLeft4:GetText(), "%d+[,.]?%d* he")
-                healingStringPlaceholderOne = string.gsub(healingStringPlaceholderOne, "%D", "")
-                return tonumber(healingStringPlaceholderOne)
-            elseif spell == "Plea" then
-                GSHealingTooltipFrame:SetSpellByID(200829)
-                GSHealingTooltipFrame:SetAlpha(0)
-                healingStringPlaceholderOne = string.match(GSHealingTooltipFrameTextLeft4:GetText(), "%d+[,.]?%d*")
-                healingStringPlaceholderOne = string.gsub(healingStringPlaceholderOne, "%D", "")
-                return tonumber(healingStringPlaceholderOne)
             end
         end
 
@@ -1438,7 +1427,7 @@ local _ = nil
             -- DEMON HUNTER
             if GSR.Class == "DEATHKNIGHT" then vPower = 6 end -- Runic Power
             if not vPower then vPower = 0 end
-            if mode == "max" then return UnitPowerMax("player", vPower) elseif mode == "deficit" then return (UnitPowerMax("player", vPower)-UnitPower("player", vPower)) else return UnitPower("player", vPower) end
+            if mode == "max" then return UnitPowerMax("player", vPower) elseif mode == "deficit" then return (UnitPowerMax("player", vPower)-UnitPower("player", vPower)) elseif mode == "tomax" then return (UnitPowerMax("player", vPower)-UnitPower("player", vPower))/GetPowerRegen() else return UnitPower("player", vPower) end
         end
 
         function GS.CP(mode) -- Returns Chi and Combo Points, modes are max or deficit otherwise current, for Primary Resources Use GS.PP(mode)
@@ -1448,11 +1437,15 @@ local _ = nil
 
         function GS.GCD()
             if GSR.Class..GS.Spec == "MONK3" then return 1 end
-            if GSR.Dev.CachedFunctions and GS.SavedReturns.GCD.rotationCacheCounter == GS.rotationCacheCounter then
-                if GS.SavedReturns.GCD[GS.rotationCacheCounter.."Result"] then return GS.SavedReturns.GCD[GS.rotationCacheCounter.."Result"] end
+            if GSR.Dev.CachedFunctions and GS.SavedReturns.GCD.RotationCacheCounter == GS.RotationCacheCounter then
+                if GS.SavedReturns.GCD[GS.RotationCacheCounter.."Result"] then return GS.SavedReturns.GCD[GS.RotationCacheCounter.."Result"] end
             end
-            GS.SavedReturns.GCD[GS.rotationCacheCounter.."Result"] = math.max((1.5/(1+GetHaste()*.01)), 0.75)
+            GS.SavedReturns.GCD[GS.RotationCacheCounter.."Result"] = math.max((1.5/(1+GetHaste()*.01)), 0.75)
             return math.max((1.5/(1+GetHaste()*.01)), 0.75)
+        end
+
+        function GS.SimCSpellHaste()
+            return 1/(1+GetHaste()*.01)
         end
 
     -- Aura Functions
@@ -1915,7 +1908,7 @@ local _ = nil
                 GS.DebugTable["y"] = y or "N/A"
                 GS.DebugTable["z"] = z or "N/A"
                 GS.DebugTable["interrupt"] = interrupt or "N/A"
-                GS.DebugTable["rotationCacheCounter"] = GS.rotationCacheCounter
+                GS.DebugTable["RotationCacheCounter"] = GS.RotationCacheCounter
                 GS.DebugTable["timeSinceLast"] = GS.DebugTable["time"] and (GetTime() - GS.DebugTable["time"]) or 0
                 GS.DebugTable["time"] = GetTime()
                 GS.DebugTable["reason"] = reason or "N/A"
@@ -1936,130 +1929,27 @@ local _ = nil
             return true
         end
 
-        function GS.Interrupt()
+        function GS.Interrupt() -- todo: implement
         end
 
     -- Class Functions
-        -- Paladin
-            function GS.TTHPG()
-                local gcd = GS.SpellCDDuration(61304)
-                local cs = GS.SpellCDDuration(35395)
-                local judg = GS.SpellCDDuration(20271)
-                local wrath = GS.SpellCDDuration(119072)
-                local shield = GS.SpellCDDuration(31935)
-
-                local generator = cs
-                for i = 1, 4 do
-                    if i == 1 then
-                        if cs > judg then generator = judg end
-                    elseif i == 2 then
-                        if GS.Talent52 and generator > wrath then generator = wrath end
-                    elseif i == 3 then
-                        if GS.Aura("player", 85416) and generator > shield then generator = shield end
-                    elseif i == 4 then
-                        if gcd > generator then generator = gcd end
-                    end
-                    if generator == 0 then break end
-                end
-                return generator
-            end
-        
-        -- Hunter
-            function GS.CheckSerpentSting()
-                table.sort(GS.MobTargets, GS.SortMobTargetsByLowestDistance)
-                local unitPlaceholder = nil
-                local counter = 0
-                for i = 1, mobTargetsSize do
-                    unitPlaceholder = GS.MobTargets[i]
-                    if UnitExists(unitPlaceholder) then
-                        if GS.Distance(unitPlaceholder)-UnitCombatReach(unitPlaceholder) <= 8 then
-                            if GS.AuraRemaining(unitPlaceholder, 118253, GS.GCD(), "", "PLAYER") then counter = counter + 1 end
-                        else
-                            break
-                        end
-                    end
-                end
-
-                if counter >= 3 then return true else return false end
-            end
-
-        -- Rogue
-            do
-                local rollTheBonesTable = {
-                    193356, -- Broadsides            193356
-                    193357, -- Shark Infested Waters 193357
-                    193358, -- Grand Melee           193358
-                    193359, -- True Bearing          193359
-                    199600, -- Buried Treasure       199600
-                    199603, -- Jolly Roger           199603
-                }
-                function GS.RollTheBones(mode)
-                    if mode == "duration" then
-                        for i = 1, #rollTheBonesTable do
-                            if GS.Aura("player", rollTheBonesTable[i]) then return (select(7, GS.Aura("player", rollTheBonesTable[i]))-GetTime()) end
-                        end
-                        return 0
-                    elseif mode == "count" then
-                        local count = 0
-                        for i = 1, #rollTheBonesTable do
-                            if GS.Aura("player", rollTheBonesTable[i]) then count = count + 1 end
-                        end
-                        return count
-                    end
-                end
-            end
-
-        -- Priest
-            function GS.VoidformInsanity(mode)
-                if mode == "drain" then
-                    return 9+(GS.Priest.Voidform.DrainStacks-1)/2
-                elseif mode == "count" then
-                    return GS.Priest.Voidform.DrainStacks
-                end
-            end
-
         -- Monk
-            local jadeSerpentStatue = nil
-            function GS.FindJadeSerpentStatue()
-                if not GetTotemInfo(1) then return false end
-                local unitPlaceholder = nil
-                for i = 1, ObjectCount() do
-                    unitPlaceholder = ObjectWithIndex(i)
-                    if UnitName(unitPlaceholder) == "Jade Serpent Statue" and UnitCreator(unitPlaceholder) == ObjectPointer("player") then return unitPlaceholder end
-                end
-                return false
-            end
+            do
+                GS.Monk.HitComboTable = {
+                    100784, -- Blackout Kick
+                    117952, -- Crackling Jade Lightning
+                    113656, -- Fists of Fury
+                    101545, -- Flying Serpent Kick
+                    107428, -- Rising Sun Kick
+                    101546, -- Spinning Crane Kick
+                    100780, -- Tiger Palm
+                    115080, -- Touch of Death
 
-            function GS.CheckJadeSerpentStatuePosition(statue, range)
-                if not statue then return false end
-                local unitPlaceholder = nil
-                local counter = 0
-                counter = 0
-                for i = 1, allyTargetsSize do
-                    unitPlaceholder = GS.AllyTargets[i].Player
-                    if GS.Distance(unitPlaceholder, statue) <= range then counter = counter + 1 end
-                end
-                return counter >= #GS.SmartAoEFriendly(40, range, true)
-            end
-
-
-        -- Druid
-            function GS.RakeCurrentMultiplier()
-                local multiplier = 1
-                if GS.Aura("player", 5217) then multiplier = multiplier * 1.15 end
-                if GS.Aura("player", 52610) then multiplier = multiplier * 1.25 end
-                if GS.Aura("player", 145152) then multiplier = multiplier * 1.5 end
-                if GS.Aura("player", 5215) or GS.Aura("player", 102543) --[[shadowmeld]] then multiplier = multiplier * 2 end
-                return multiplier
-            end
-
-        -- Death Knight
-            function GS.NumberOfAvailableRunes()
-                local counter = 0
-                for i = 1, 6 do
-                    if GetRuneCount(i) == 1 then counter = counter + 1 end
-                end
-                return counter
+                    123986, -- Chi Burst
+                    115098, -- Chi Wave
+                    116847, -- Rushing Jade Wind
+                    152175, -- Whirling Dragon Punch
+                }
             end
 
 -- Start Your Engines
@@ -2086,2212 +1976,14 @@ local _ = nil
             GS.SaveToGSR("Class", (GSR.Class or select(2, UnitClass("player"))))
             GS.SaveToGSR("Race",  (GSR.Race  or select(2, UnitRace ("player"))))
             GS.Spec   = GS.Spec   or GetSpecialization()
+            GS.CacheTalents()
+
+            if GSR.Class and not GSD.Class then
+                LoadScript("GStar Rotations\\gs"..GSR.Class..".lua")
+                GSD.Class = true
+            end
         end
     end
-
--- WARRIOR ARMS
--- PALADIN RETRIBUTION
--- HUNTER BEAST MASTERY
--- ROGUE ASSASSINATION
--- PRIEST DISCIPLINE
--- SHAMAN ELEMENTAL
--- MAGE FROST
--- WARLOCK AFFLICTION
--- MONK WINDWALKER
--- DRUID FERAL
--- DEMON HUNTER
--- DEATH KNIGHT UNHOLY
-
--- Rotations
-    do
-        local berserking = 26297 -- todo: verify
-        
-        -- Warriors
-            do
-                local arcane_torrent =  69179 -- todo: verify
-                local avatar         = 107574
-                local battle_cry     =   1719
-                local berserker_rage =  18499
-                local blood_fury     =  20572
-                local heroic_charge  =    nil
-                local rage           =  GS.PP
-                local shockwave      =  46968
-                local stone_heart    = 225947 -- todo: verify
-                local storm_bolt     = 107570
-
-                do -- Arms
-                    -- talents=1111122
-                    -- artifact=36:0:0:0:0:1136:1:1137:1:1139:1:1142:1:1145:3:1147:2:1148:3:1149:3:1150:3:1356:1
-                    local bladestorm         = 227847
-                    local cleave             =        {spell =    845,   buff = 188923}
-                    local colossus_smash     =        {spell = 167105, debuff = 208086}
-                    local execute            = 163201
-                    local focused_rage       = 207982
-                    local hamstring          =   1715
-                    local mortal_strike      =  12294
-                    local overpower          =   7384
-                    -- local precise_strikes    = 209493 -- todo: verify
-                    local ravager            = 152277
-                    local rend               =    772
-                    local shattered_defenses = 209706 -- todo: verify
-                    local slam               =   1464
-                    local warbreaker         = 209577 -- todo: verify
-                    local whirlwind          =   1680
-
-                    local precise_strikes = function()
-                        GSHealingTooltipFrame:ClearLines()
-                        GSHealingTooltipFrame:SetSpellByID(61304)
-                        GSHealingTooltipFrame:SetAlpha(0)
-                        if GSHealingTooltipFrameTextLeft1:GetText() ~= "Global Cooldown" then
-                            GSHealingTooltipFrame:SetOwner(UIParent)
-                            GSHealingTooltipFrame:SetAlpha(0)
-                        end
-                        GSHealingTooltipFrame:ClearLines()
-                        GSHealingTooltipFrame:SetSpellByID(12294)
-                        GSHealingTooltipFrame:SetAlpha(0)
-                        healingStringPlaceholderOne = string.match(GSHealingTooltipFrameTextLeft2:GetText(), "%d+ Rage")
-                        healingStringPlaceholderOne = string.gsub(healingStringPlaceholderOne, "%D", "")
-                        healingStringPlaceholderOne = healingStringPlaceholderOne + 0
-                        return healingStringPlaceholderOne ~= 20 and healingStringPlaceholderOne ~= 16
-                    end
-
-                    function GS.WARRIOR1()
-                        if UnitAffectingCombat("player") then
-                            if GS.ValidTarget() and (not GSR.ChaosMode or GetTime() > GS.SpellThrottle) then
-                                StartAttack("target")
-                                -- actions+=/potion,name=draenic_strength,if=(target.health.pct<20&buff.battle_cry.up)|target.time_to_die<25
-                                if GS.CDs then
-                                    if GS.SIR(battle_cry) and (not GS.AuraRemaining("target", colossus_smash.debuff, 5, "", "PLAYER") or GS.Aura("target", colossus_smash.debuff, "", "PLAYER") and GS.SpellCDDuration(colossus_smash.spell) == 0) then
-                                        if GS.SCA(colossus_smash.spell) and not precise_strikes() and not GS.Aura("player", shattered_defenses) then GS.Cast(_, battle_cry, _, _, _, _, "Battle Cry: Synced Colossus Smash") return end
-                                    end
-                                    if GS.Talent33 and GS.SIR(avatar) and (not GS.AuraRemaining("target", colossus_smash.debuff, 5, "", "PLAYER") or GS.Aura("target", colossus_smash.debuff, "", "PLAYER") and GS.SpellCDDuration(colossus_smash.spell) == 0) then
-                                        if GS.SCA(colossus_smash.spell) and not precise_strikes() and not GS.Aura("player", shattered_defenses) then GS.Cast(_, avatar, _, _, _, _, "Avatar: Synced Colossus Smash") return end
-                                    end
-                                    if GS.SIR(blood_fury) and GS.Aura("player", battle_cry) then GS.Cast(_, blood_fury, _, _, _, _, "Blood Fury: Orc Racial AP") return end
-                                    if GS.SIR(berserking) and GS.Aura("player", battle_cry) then GS.Cast(_, berserking, _, _, _, _, "Berserking: Troll Racial") return end
-                                    if GS.SIR(arcane_torrent) and rage("deficit") > 40 then GS.Cast(_, arcane_torrent, _, _, _, _, "Arcane Torrent: Blood Elf Racial Warrior") return end
-                                end
-                                -- actions+=/heroic_leap,if=buff.shattered_defenses.down
-                                if GS.Talent32 and GS.SCA(rend) and GS.AuraRemaining("target", rend, GS.GCD(), "", "PLAYER") then GS.Cast(_, rend, _, _, _, _, "Rend: Less than GCD") return end
-                                if GS.Talent61 and GS.SCA(hamstring) and GS.Aura("player", battle_cry) then GS.Cast(_, hamstring, _, _, _, _, "Hamstring: Free") return end
-                                if GS.SCA(colossus_smash.spell) and not GS.Aura("target", colossus_smash.debuff, "", "PLAYER") then GS.Cast(_, colossus_smash.spell, _, _, _, _, "", "PLAYER") return end
-                                -- actions+=/warbreaker,if=debuff.colossus_smash.down
-                                if GS.Talent73 and GS.SIR(ravager) then
-                                    if GS.AoE then
-                                        GS.SmartAoE(40, 8, true)
-                                        GS.Cast(_, ravager, rotationXC, rotationYC, rotationZC, _, "Ravager: AoE")
-                                        return
-                                    else
-                                        GS.Cast(_, ravager, _, _, _, _, "Ravager")
-                                        return
-                                    end
-                                end
-                                if GS.Talent12 and GS.SCA(7384) then GS.Cast(_, 7384, _, _, _, _, "Overpower") return end
-                                if GS.Health("target", _, true) >= 20 then -- Single
-                                    if GS.SCA(mortal_strike) then GS.Cast(_, mortal_strike, _, _, _, _, "Mortal Strike") return end
-                                    if GS.SCA(colossus_smash.spell) and not GS.Aura("player", shattered_defenses) and not precise_strikes() then GS.Cast(_, colossus_smash.spell, _, _, _, _, "Colossus Smash: No Buffs") return end
-                                    -- actions.single+=/warbreaker,if=buff.shattered_defenses.down
-                                    if GS.Talent53 and GS.SIR(focused_rage) and (not GS.AuraStacks("player", focused_rage, 3) or GS.Talent61 and GS.Aura("player", battle_cry)) then GS.Cast(_, focused_rage, _, _, _, _, "Focused Rage") return end
-                                    if GS.SIR(whirlwind) and GS.Distance() < 8+UnitCombatReach("target") and (GS.Talent31 and (GS.Aura("target", colossus_smash.debuff, "", "PLAYER") or rage("deficit") < 50) and not GS.Talent53 or GS.Talent61 and GS.Aura("player", battle_cry) or GS.Aura("player", cleave.buff)) then GS.Cast(_, whirlwind, _, _, _, _, "Whirlwind: Dump") return end
-                                    if GS.SCA(slam) and (not GS.Talent31 and (GS.Aura("target", colossus_smash.debuff, "", "PLAYER") or rage("deficit") < 40) and not GS.Talent53 or GS.Talent61 and GS.Aura("player", battle_cry)) then GS.Cast(_, slam, _, _, _, _, "Slam: Dump") return end
-                                    if GS.Talent32 and GS.SCA(rend) and GS.AuraRemaining("target", rend, 4.5, "", "PLAYER") then GS.Cast(_, rend, _, _, _, _, "Rend: Refresh") return end
-                                    -- actions.single+=/heroic_charge
-                                    if GS.Talent31 then
-                                        if GS.SIR(whirlwind) and GS.Distance() < 8+UnitCombatReach("target") and (not GS.Talent53 or rage() > 100 or GS.AuraStacks("player", focused_rage, 3)) then GS.Cast(_, whirlwind, _, _, _, _, "Whirlwind") return end
-                                    else
-                                        if GS.SCA(slam) and (not GS.Talent53 or rage() > 100 or GS.AuraStacks("player", focused_rage, 3)) then GS.Cast(_, slam, _, _, _, _, "Slam") return end
-                                    end
-                                    if GS.SCA(execute) then GS.Cast(_, execute, _, _, _, _, "Execute") return end
-                                    -- actions.single+=/shockwave
-                                    -- actions.single+=/storm_bolt
-                                else -- Execute
-                                    if GS.SCA(mortal_strike) and GS.Aura("player", shattered_defenses) and GS.AuraStacks("player", focused_rage, 3) then GS.Cast(_, mortal_strike, _, _, _, _, "Mortal Strike: Shattered Defenses Focused Rage") return end
-                                    if GS.SCA(execute) and GS.Aura("target", colossus_smash.debuff, "", "PLAYER") and (GS.Aura("player", shattered_defenses) or rage() > 100 or GS.Talent61 and GS.Aura("player", battle_cry)) then GS.Cast(_, execute, _, _, _, _, "Execute: Powered Up") return end
-                                    if GS.SCA(mortal_strike) and not GS.Aura("player", shattered_defenses) then GS.Cast(_, mortal_strike, _, _, _, _, "Mortal Strike: Execute") return end
-                                    if GS.SCA(colossus_smash.spell) and not GS.Aura("player", shattered_defenses) and not precise_strikes() then GS.Cast(_, colossus_smash.spell, _, _, _, _, "Colossus Smash: No Buffs") return end
-                                    -- actions.execute+=/warbreaker,if=buff.shattered_defenses.down
-                                    if GS.SCA(mortal_strike) then GS.Cast(_, mortal_strike, _, _, _, _, "Mortal Strike") return end
-                                    if GS.SCA(execute) and (GS.Aura("target", colossus_smash.debuff, "", "PLAYER") or rage() >= 100) then GS.Cast(_, execute, _, _, _, _, "Execute") return end
-                                    if GS.Talent53 and GS.Talent61 and GS.SIR(focused_rage) and GS.Aura("player", battle_cry) then GS.Cast(_, focused_rage, _, _, _, _, "Focused Rage") return end
-                                    if GS.Talent32 and GS.SCA(rend) and GS.AuraRemaining("target", rend, 4.5, "", "PLAYER") then GS.Cast(_, rend, _, _, _, _, "Rend: Refresh") return end
-                                    -- actions.execute+=/heroic_charge
-                                    -- actions.execute+=/shockwave
-                                    -- actions.execute+=/storm_bolt
-                                end
-                            end
-                        end
-                    end
-                end
-
-                do -- Fury
-                    -- talents=2232133
-                    -- talent_override=massacre
-                    -- artifact=35:0:0:0:0:982:1:984:1:985:1:986:1:988:2:990:3:991:3:995:3:996:3:1357:1
-                    local bladestorm    =  46924
-                    local bloodbath     =  12292
-                    local bloodthirst   =  23881
-                    local dragon_roar   = 118000 -- todo: verify buff is same
-                    local enrage        = 184362
-                    local execute       =   5308
-                    local furious_slash = 100130
-                    local juggernaut    =        {buff = 201009} -- todo: verify
-                    local massacre      = 206316 -- todo: verify
-                    local meat_cleaver  =  85739
-                    local odyns_fury    = 205545 -- todo: verify
-                    local raging_blow   =  85288
-                    local rampage       = 184367
-                    local whirlwind     = 190411
-                    local wrecking_ball = 215570
-                    
-                    function GS.WARRIOR2()
-                        if UnitAffectingCombat("player") then
-                            if GS.ValidTarget() and (not GSR.ChaosMode or GetTime() > GS.SpellThrottle) then
-                                StartAttack("target")
-                                if GS.CDs then
-                                    -- actions+=/use_item,name=faulty_countermeasure,if=(spell_targets.whirlwind>1|!raid_event.adds.exists)&((talent.bladestorm.enabled&cooldown.bladestorm.remains=0)|buff.battle_cry.up|target.time_to_die<25)
-                                    -- actions+=/potion,name=draenic_strength,if=(target.health.pct<20&buff.battle_cry.up)|target.time_to_die<=30
-                                    if GS.SIR(battle_cry) then GS.Cast(_, battle_cry, _, _, _, _, "Battle Cry: Artifact Odyn's Fury Not Enabled") return end
-                                    -- actions+=/battle_cry,if=(artifact.odyns_fury.enabled&cooldown.odyns_fury.remains=0&(cooldown.bloodthirst.remains=0|(buff.enrage.remains>cooldown.bloodthirst.remains)))|!artifact.odyns_fury.enabled
-                                    if GS.Talent33 and GS.SIR(avatar) and (GS.Aura("player", battle_cry) or GS.UnitIsBoss("target") and GS.GetTTD() < GS.SpellCDDuration(battle_cry)+10) then GS.Cast(_, avatar, _, _, _, _, "Avatar") return end
-                                    if GS.Talent61 and GS.SIR(bloodbath) and (GS.Aura("player", dragon_roar) or not GS.Talent73 and (GS.Aura("player", battle_cry) or GS.SpellCDDuration(battle_cry) > 10)) then GS.Cast(_, bloodbath, _, _, _, _, "Bloodbath") return end
-                                    if GS.SIR(blood_fury) and GS.Aura("player", battle_cry) then GS.Cast(_, blood_fury, _, _, _, _, "Blood Fury Orc Racial AP") return end
-                                    -- actions+=/berserking,if=buff.battle_cry.up
-                                    -- actions+=/arcane_torrent,if=rage<rage.max-40
-                                end
-                                if GS.AoE and GS.PlayerCount(8, _, 2, "inclusive", 3) then
-                                    if GS.SIR(whirlwind) and not GS.Aura("player", meat_cleaver) then GS.Cast(_, whirlwind, _, _, _, _, "Whirlwind: Cleave, Meat Cleaver Not Up") return end
-                                    -- actions.two_targets+=/call_action_list,name=bladestorm
-                                    if GS.SCA(rampage) and (not GS.Aura("player", enrage) or rage() == 100 and not GS.Aura("player", juggernaut.buff) or GS.Aura("player", massacre)) then GS.Cast(_, rampage, _, _, _, _, "Rampage: Cleave, Not Enraged|Not Juggernaut Execute|Free Massacre") return end
-                                    if GS.SCA(bloodthirst) and not GS.Aura("player", enrage) then GS.Cast(_, bloodthirst, _, _, _, _, "Bloodthirst: Cleave, Not Enraged") return end
-                                    if GS.SCA(raging_blow) and GS.PlayerCount(8, _, 2, "==") then GS.Cast(_, raging_blow, _, _, _, _, "Raging Blow: Cleave") return end
-                                    if GS.SIR(whirlwind) and GS.PlayerCount(8, _, 2, ">") then GS.Cast(_, whirlwind, _, _, _, _, "Whirlwind: 3 Cleave") return end
-                                    if GS.Talent73 and GS.SIR(dragon_roar) then GS.Cast(_, dragon_roar, _, _, _, _, "Dragon Roar: Cleave") return end
-                                    if GS.SCA(bloodthirst) then GS.Cast(_, bloodthirst, _, _, _, _, "Bloodthirst: Cleave") return end
-                                    if GS.SIR(whirlwind) then GS.Cast(_, whirlwind, _, _, _, _, "Whirlwind: 2 Cleave") return end
-                                    return
-                                end
-                                if GS.AoE and GS.PlayerCount(8, _, 3, ">") then
-                                    if GS.SCA(bloodthirst) and (not GS.Aura("player", enrage) or rage() < 50) then GS.Cast(_, bloodthirst, _, _, _, _, "Bloodthirst: AoE, Not Enraged or Low Rage") return end
-                                    -- actions.aoe+=/call_action_list,name=bladestorm
-                                    if GS.SIR(whirlwind) and GS.Aura("player", enrage) then GS.Cast(_, whirlwind, _, _, _, _, "Whirlwind: AoE, Enraged") return end
-                                    if GS.Talent73 and GS.SIR(dragon_roar) then GS.Cast(_, dragon_roar, _, _, _, _, "Dragon Roar: AoE") return end
-                                    if GS.SCA(rampage) and GS.Aura("player", meat_cleaver) then GS.Cast(_, rampage, _, _, _, _, "Rampage: AoE, Meat Cleaver") return end
-                                    if GS.SCA(bloodthirst) then GS.Cast(_, bloodthirst, _, _, _, _, "Bloodthirst: AoE") return end
-                                    if GS.SIR(whirlwind) then GS.Cast(_, whirlwind, _, _, _, _, "Whirlwind: AoE") return end
-                                    return
-                                end
-                                -- actions.single_target=odyns_fury,if=buff.battle_cry.up|target.time_to_die<cooldown.battle_cry.remains
-                                if GS.Talent32 and GS.Talent73 and GS.SIR(berserker_rage) and GS.SpellCDDuration(dragon_roar) == 0 and not GS.Aura("player", enrage) then GS.Cast(_, berserker_rage, _, _, _, _, "Berserker Rage: Not Enraged, Dragon Roar Cooled Off") return end
-                                if GS.SCA(rampage) and (rage() > 95 or GS.Aura("player", massacre)) then GS.Cast(_, rampage, _, _, _, _, "Rampage: Dump|Free") return end
-                                if not GS.Talent63 and GS.SIR(whirlwind) and GS.Distance("target") < 8+UnitCombatReach("target") and GS.Aura("player", wrecking_ball) then GS.Cast(_, whirlwind, _, _, _, _, "Whirlwind: Wrecking Ball, Inner Rage Not Talented") return end
-                                if GS.SCA(raging_blow) and GS.Aura("player", enrage) then GS.Cast(_, raging_blow, _, _, _, _, "Raging Blow: Enraged") return end
-                                if GS.SIR(whirlwind) and GS.Distance("target") < 8+UnitCombatReach("target") and GS.Aura("player", wrecking_ball) and GS.Aura("player", enrage) then GS.Cast(_, whirlwind, _, _, _, _, "Whirlwind: Wrecking Ball Enraged") return end
-                                if GS.SCA(execute) and (GS.Aura("player", enrage) or GS.Aura("player", battle_cry) or GS.Aura("player", stone_heart)) then GS.Cast(_, execute, _, _, _, _, "Execute: Enraged|Battle Cry|Stone Heart") return end
-                                if GS.SCA(bloodthirst) then GS.Cast(_, bloodthirst, _, _, _, _, "Bloodthirst") return end
-                                if GS.SCA(raging_blow) then GS.Cast(_, raging_blow, _, _, _, _, "Raging Blow") return end
-                                if GS.Talent73 and GS.SIR(dragon_roar) and GS.Distance("target") < 8+UnitCombatReach("target") and (not GS.Talent61 and (GS.SpellCDDuration(battle_cry) < 1 or GS.SpellCDDuration(battle_cry) > 10) or GS.Talent61 and GS.SpellCDDuration(bloodbath) == 0) then GS.Cast(_, dragon_roar, _, _, _, _, "Dragon Roar") return end
-                                if GS.SCA(rampage) and GS.Health("target", maxhealth, true) > 20 and (GS.SpellCDDuration(battle_cry) > 3 or GS.Aura("player", battle_cry) or rage() > 90) then GS.Cast(_, rampage, _, _, _, _, "Rampage") return end
-                                if GS.SCA(execute) and (rage() > 50 or GS.Aura("player", battle_cry) or GS.Aura("player", stone_heart) or GS.GetTTD() < 20)  then GS.Cast(_, execute, _, _, _, _, "Execute: Rage Dump|Battle Cry|Stone Heart|TTD < 20") return end
-                                if GS.SCA(furious_slash) then GS.Cast(_, furious_slash, _, _, _, _, "Furious Slash") return end
-
-                                -- actions.bladestorm=bladestorm,if=buff.enrage.remains>2&(raid_event.adds.in>90|!raid_event.adds.exists|spell_targets.bladestorm_mh>desired_targets)
-                            end
-                        end
-                    end
-                end
-
-                do -- Protection
-                    -- talents=0111201
-                    -- artifact=11:133763:137412:133686:0:91:1:92:1:93:1:99:3:100:6:101:3:102:3:103:1:104:1:1358:1
-                    local devastate = 20243
-                    local revenge = 6572
-                    local shield_slam = 23922
-                    local thunder_clap = 6343
-
-                    function GS.WARRIOR3()
-                        if UnitAffectingCombat("player") then
-                            if GS.ValidTarget() and (not GSR.ChaosMode or GetTime() > GS.SpellThrottle) then
-                                StartAttack("target")
-                                -- actions+=/use_item,name=horn_of_valor
-                                -- actions+=/use_item,name=coagulated_nightwell_residue
-                                -- actions+=/blood_fury
-                                -- actions+=/berserking
-                                -- actions+=/arcane_torrent
-
-                                -- actions.prot=shield_block
-                                -- actions.prot+=/ignore_pain
-
-                                -- actions.prot+=/demoralizing_shout,if=incoming_damage_2500ms>health.max*0.20
-                                -- actions.prot+=/shield_wall,if=incoming_damage_2500ms>health.max*0.50
-                                -- actions.prot+=/last_stand,if=incoming_damage_2500ms>health.max*0.50&!cooldown.shield_wall.remains=0
-
-                                -- actions.prot+=/potion,name=unbending_potion,if=(incoming_damage_2500ms>health.max*0.15&!buff.unbending_potion.up)|target.time_to_die<=25
-                                -- actions.prot+=/potion,name=draenic_strength,if=(incoming_damage_2500ms>health.max*0.15&!buff.potion.up)|target.time_to_die<=25
-
-                                if GS.AoE and GS.PlayerCount(8, false, 3, ">=") then
-                                    -- actions.prot_aoe=battle_cry
-                                    -- actions.prot_aoe+=/demoralizing_shout,if=talent.booming_voice.enabled&rage<=50
-                                    -- actions.prot_aoe+=/ravager,if=talent.ravager.enabled
-                                    if GS.SCA(shield_slam) then GS.Cast(_, shield_slam, _, _, _, _, "Shield Slam: AoE") return end
-                                    if GS.SCA(revenge) then GS.Cast(_, revenge, _, _, _, _, "Revenge: AoE") return end
-                                    if GS.SIR(thunder_clap) then GS.Cast(_, thunder_clap, _, _, _, _, "Thunder Clap") return end
-                                    if GS.SCA(devastate) then GS.Cast(_, devastate, _, _, _, _, "Devastate: AoE") return end
-                                    return
-                                end
-                                -- actions.prot+=/battle_cry
-                                -- actions.prot+=/demoralizing_shout,if=talent.booming_voice.enabled&rage<=50
-                                -- actions.prot+=/ravager,if=talent.ravager.enabled
-                                if GS.SCA(shield_slam) then GS.Cast(_, shield_slam, _, _, _, _, "Shield Slam") return end
-                                if GS.SCA(revenge) then GS.Cast(_, revenge, _, _, _, _, "Revenge") return end
-                                if GS.SCA(devastate) then GS.Cast(_, devastate, _, _, _, _, "Devastate") return end
-
-                            end
-                        end
-                    end
-                end
-            end
-
-        -- Paladins
-            do
-                local crusader_strike = 35395
-                local judgment = 20271
-                -- todo: verify Holy Paladin
-                -- todo: verify Protection Paladin
-
-                do -- Protection
-                    function GS.PALADIN2()
-                        if UnitAffectingCombat("player") then
-                            if GS.ValidTarget() and (not GSR.ChaosMode or GetTime() > GS.SpellThrottle) then
-                                if GS.SCA(20271, "target", interruptCasting) and GS.ChargeCD(53600) > 0 then GS.Cast("target", 20271, false, false, false, "SpellToInterrupt") return end
-                                if GS.SIR(26573) then GS.Cast("target", 26573, false, false, false, "SpellToInterrupt") return end
-                                if GS.SCA(31935, "target", interruptCasting) then GS.Cast("target", 31935, false, false, false, "SpellToInterrupt") return end
-                                if GS.Talent12 then
-                                    if GS.SCA(204019, "target", interruptCasting) then GS.Cast("target", 204019, false, false, false, "SpellToInterrupt") return end
-                                else
-                                    if GS.SCA(53595, "target", interruptCasting) then GS.Cast("target", 53595, false, false, false, "SpellToInterrupt") return end
-                                end
-                            end
-                        end
-                    end
-                end
-
-                do -- Retribution
-                    -- talents=1112112
-                    -- artifact=2:136717:137316:136717:0:40:1:41:3:42:3:50:3:51:3:53:6:350:1:353:1:1275:1
-                    local avenging_wrath           =  31884
-                    local blade_of_justice         = 184575
-                    local blade_of_wrath           = 202270
-                    local consecration             = 205228
-                    local crusade                  = 224668
-                    local divine_hammer            = 198034
-                    local divine_purpose           = 223819 -- todo: verify
-                    local divine_storm             =  53385
-                    local execution_sentence       = 213757
-                    local holy_wrath               = 210220
-                    local justicars_vengeance      = 215661
-                    local rebuke                   =  96231
-                    local templars_verdict         =  85256
-                    local whisper_of_the_nathrezim =        {item = 137020, buff = nil} -- todo: verify
-                    local zeal                     = 217020
-                    
-                    function GS.PALADIN3()
-                        if UnitAffectingCombat("player") then
-                            if GS.ValidTarget() and (GSR.ChaosMode or GetTime() > GS.SpellThrottle) then
-                                StartAttack("target")
-                                -- actions+=/rebuke
-                                if GS.CDs then
-                                    -- actions+=/potion,name=the_old_war
-                                    -- actions+=/holy_wrath
-                                    if not GS.Talent72 then
-                                        if GS.SIR(avenging_wrath) then GS.Cast(_, avenging_wrath, _, _, _, _, "Avenging Wrath") return end
-                                    else
-                                        if GS.SIR(crusade) and GS.PP() >= 5 then GS.Cast(_, crusade, _, _, _, _, "Crusade") return end
-                                    end
-                                    -- actions+=/wake_of_ashes,if=holy_power>=0&time<2
-                                    -- actions+=/arcane_torrent
-                                end
-                                if GS.Talent41 then -- Virtue's Blade
-                                    if GS.Aura("target", 197277, "", "PLAYER") then
-                                        if GS.AoE and GS.SIR(divine_storm) and GS.PlayerCount(8, false, 2, ">=") then
-                                            if GS.Aura("player", divine_purpose) and GS.AuraRemaining("player", divine_purpose, GS.GCD()*2) then GS.Cast(_, divine_storm, _, _, _, _, "Divine Storm: Divine Purpose About to Expire") return end
-                                            if GS.PP() >= 5 and GS.Aura("player", divine_purpose) then GS.Cast(_, divine_storm, _, _, _, _, "Divine Storm: Divine Purpose + 5 HP") return end
-                                            if GS.PP() >= 5 and (not GS.Talent72 or GS.SpellCDDuration(crusade) > GS.GCD()*3) then GS.Cast(_, divine_storm, _, _, _, _, "Divine Storm: Dump HP") return end
-                                        end
-                                        if GS.Talent51 and GS.SCA(justicars_vengeance) and GS.Aura("player", divine_purpose) and not GS.IsEquipped(whisper_of_the_nathrezim) then
-                                            if GS.AuraRemaining("player", divine_purpose, GS.GCD()*2) then GS.Cast(_, justicars_vengeance, _, _, _, _, "Justicar's Vengeance: Divine Purpose About to Expire") return end
-                                            if GS.PP() >= 5 then GS.Cast(_, justicars_vengeance, _, _, _, _, "Justicar's Vengeance: Divine Purpose + 5 HP") return end
-                                        end
-                                        if GS.SCA(templars_verdict) then
-                                            if GS.Aura("player", divine_purpose) and GS.AuraRemaining("player", divine_purpose, GS.GCD()*2) then GS.Cast(_, templars_verdict, _, _, _, _, "Templar's Verdict: Divine Purpose About to Expire") return end
-                                            if GS.PP() >= 5 and GS.Aura("player", divine_purpose) then GS.Cast(_, templars_verdict, _, _, _, _, "Templar's Verdict: Divine Purpose + 5 HP") return end
-                                            if GS.PP() >= 5 and (not GS.Talent72 or GS.SpellCDDuration(crusade) > GS.GCD()*3) then GS.Cast(_, templars_verdict, _, _, _, _, "Templar's Verdict: Dump HP") return end
-                                        end
-                                    end
-                                    -- actions.VB+=/divine_storm,if=holy_power>=3&spell_targets.divine_storm>=2&(cooldown.wake_of_ashes.remains<gcd*2&artifact.wake_of_ashes.enabled|buff.whisper_of_the_nathrezim.up&buff.whisper_of_the_nathrezim.remains<gcd)&(!talent.crusade.enabled|cooldown.crusade.remains>gcd*4)
-                                    -- actions.VB+=/justicars_vengeance,if=holy_power>=3&buff.divine_purpose.up&cooldown.wake_of_ashes.remains<gcd*2&artifact.wake_of_ashes.enabled&!equipped.whisper_of_the_nathrezim
-                                    -- actions.VB+=/templars_verdict,if=holy_power>=3&(cooldown.wake_of_ashes.remains<gcd*2&artifact.wake_of_ashes.enabled|buff.whisper_of_the_nathrezim.up&buff.whisper_of_the_nathrezim.remains<gcd)&(!talent.crusade.enabled|cooldown.crusade.remains>gcd*4)
-                                    -- actions.VB+=/wake_of_ashes,if=holy_power<=1|(holy_power<=2&cooldown.blade_of_justice.remains>gcd&(cooldown.zeal.charges_fractional<=0.67|cooldown.crusader_strike.charges_fractional<=0.67))
-                                    if GS.Talent22 then
-                                        if GS.SCA(zeal) and GetSpellCharges(zeal) == 2 and GS.PP() <= 4 then GS.Cast(_, zeal, _, _, _, _, "Zeal: Capped Charges") return end
-                                    else
-                                        if GS.SCA(35395) and GetSpellCharges(35395) == 2 and GS.PP() <= 4 then GS.Cast(_, 35395, _, _, _, _, "Crusader Strike: Capped Charges") return end
-                                    end
-                                    if GS.SCA(blade_of_justice) and (GS.PP() <= 2 or GS.PP() <= 3 and GS.FracCalc("spell", GS.Talent22 and zeal or 35395) <= 1.34) then GS.Cast(_, blade_of_justice, _, _, _, _, "Blade of Justice") return end
-                                    if GS.SCA(20271) and (GS.PP() >= 3 or GS.FracCalc("spell", GS.Talent22 and zeal or 35395) <= 1.67 and GS.SpellCDDuration(blade_of_justice) > GS.GCD() or GS.Talent23 and GS.Health("target", _, true) > 50) then GS.Cast(_, 20271, _, _, _, _, "Judgment: HP|Crusader Strike Capped Charges|Talented 50%+") return end
-                                    if GS.Talent13 and GS.SIR(consecration) and GS.Distance("target") < 8+UnitCombatReach("target") then GS.Cast(_, consecration, _, _, _, _, "Consecration") return end
-                                    if GS.Aura("target", 197277, "", "PLAYER") then
-                                        if GS.AoE and GS.SIR(divine_storm) and GS.PlayerCount(8, false, 2, ">=") then
-                                            if GS.Aura("player", divine_purpose) then GS.Cast(_, divine_storm, _, _, _, _, "Divine Storm: Divine Purpose") return end
-                                            if GS.Aura("player", 209785) and (not GS.Talent72 or GS.SpellCDDuration(crusade) > GS.GCD()*3) then GS.Cast(_, divine_storm, _, _, _, _, "Divine Storm: Dump Fires of Justice") return end
-                                            if GS.PP() >= 4 and (not GS.Talent72 or GS.SpellCDDuration(crusade) > GS.GCD()*4) then GS.Cast(_, divine_storm, _, _, _, _, "Divine Storm: Dump HP") return end
-                                        end
-                                        if GS.Talent51 and GS.SCA(justicars_vengeance) and not GS.IsEquipped(whisper_of_the_nathrezim) then GS.Cast(_, justicars_vengeance, _, _, _, _, "Justicar's Vengeance") return end
-                                        if GS.SCA(templars_verdict) then
-                                            if GS.Aura("player", divine_purpose) then GS.Cast(_, templars_verdict, _, _, _, _, "Templar's Verdict: Divine Purpose") return end
-                                            if GS.Aura("player", 209785) and (not GS.Talent72 or GS.SpellCDDuration(crusade) > GS.GCD()*3) then GS.Cast(_, templars_verdict, _, _, _, _, "Templar's Verdict: Dump Fires of Justice") return end
-                                            if GS.PP() >= 4 and (not GS.Talent72 or GS.SpellCDDuration(crusade) > GS.GCD()*4) then GS.Cast(_, templars_verdict, _, _, _, _, "Templar's Verdict: Dump HP") return end
-                                        end
-                                    end
-                                    if GS.Talent22 then
-                                        if GS.SCA(zeal) and GS.PP() <= 4 then GS.Cast(_, zeal, _, _, _, _, "Zeal") return end
-                                    else
-                                        if GS.SCA(35395) and GS.PP() <= 4 then GS.Cast(_, 35395, _, _, _, _, "Crusader Strike") return end
-                                    end
-                                    if GS.AoE and GS.PP() >= 3 and GS.SIR(divine_storm) and GS.Aura("target", 197277, "", "PLAYER") and GS.PlayerCount(8, _, 2, ">=") and (not GS.Talent72 or GS.SpellCDDuration(crusade) > GS.GCD()*5) then GS.Cast(_, divine_storm, _, _, _, _, "Divine Storm") return end
-                                    if GS.PP() >= 3 and GS.SCA(templars_verdict) and GS.Aura("target", 197277, "", "PLAYER") and GS.PP() >= 3 and (not GS.Talent72 or GS.SpellCDDuration(crusade) > GS.GCD()*5) then GS.Cast(_, templars_verdict, _, _, _, _, "Templar's Verdict") return end
-                                elseif GS.Talent42 then -- Blade of Wrath
-                                    if GS.Aura("target", 197277, "", "PLAYER") then
-                                        if GS.AoE and GS.SIR(divine_storm) and GS.PlayerCount(8, false, 2, ">=") then
-                                            if GS.Talent21 and GS.AuraRemaining("target", 197277, GS.GCD(), "", "PLAYER") then GS.Cast(_, divine_storm, _, _, _, _, "Divine Storm: Judgment Last GCD") return end
-                                            if GS.Aura("player", divine_purpose) and GS.AuraRemaining("player", divine_purpose, GS.GCD()*2) then GS.Cast(_, divine_storm, _, _, _, _, "Divine Storm: Divine Purpose About to Expire") return end
-                                            if GS.PP() >= 5 and GS.Aura("player", divine_purpose) then GS.Cast(_, divine_storm, _, _, _, _, "Divine Storm: Divine Purpose + 5 HP") return end
-                                            if GS.PP() >= 5 and (not GS.Talent72 or GS.SpellCDDuration(crusade) > GS.GCD()*3) then GS.Cast(_, divine_storm, _, _, _, _, "Divine Storm: Dump HP") return end
-                                        end
-                                        if GS.Talent51 and GS.SCA(justicars_vengeance) and GS.Aura("player", divine_purpose) and not GS.IsEquipped(whisper_of_the_nathrezim) then
-                                            if GS.AuraRemaining("player", divine_purpose, GS.GCD()*2) then GS.Cast(_, justicars_vengeance, _, _, _, _, "Justicar's Vengeance: Divine Purpose About to Expire") return end
-                                            if GS.PP() >= 5 then GS.Cast(_, justicars_vengeance, _, _, _, _, "Justicar's Vengeance: Divine Purpose + 5 HP") return end
-                                        end
-                                        if GS.SCA(templars_verdict) then
-                                            if GS.Talent21 and GS.AuraRemaining("target", 197277, GS.GCD(), "", "PLAYER") then GS.Cast(_, templars_verdict, _, _, _, _, "Templar's Verdict: Judgment Last GCD") return end
-                                            if GS.Aura("player", divine_purpose) and GS.AuraRemaining("player", divine_purpose, GS.GCD()*2) then GS.Cast(_, templars_verdict, _, _, _, _, "Templar's Verdict: Divine Purpose About to Expire") return end
-                                            if GS.PP() >= 5 and GS.Aura("player", divine_purpose) then GS.Cast(_, templars_verdict, _, _, _, _, "Templar's Verdict: Divine Purpose + 5 HP") return end
-                                            if GS.PP() >= 5 and (not GS.Talent72 or GS.SpellCDDuration(crusade) > GS.GCD()*3) then GS.Cast(_, templars_verdict, _, _, _, _, "Templar's Verdict: Dump HP") return end
-                                        end
-                                    end
-                                    -- actions.BoW+=/divine_storm,if=holy_power>=3&spell_targets.divine_storm>=2&(cooldown.wake_of_ashes.remains<gcd*2&artifact.wake_of_ashes.enabled|buff.whisper_of_the_nathrezim.up&buff.whisper_of_the_nathrezim.remains<gcd)&(!talent.crusade.enabled|cooldown.crusade.remains>gcd*4)
-                                    -- actions.BoW+=/justicars_vengeance,if=holy_power>=3&buff.divine_purpose.up&cooldown.wake_of_ashes.remains<gcd*2&artifact.wake_of_ashes.enabled&!equipped.whisper_of_the_nathrezim
-                                    -- if GS.SCA(templars_verdict) and GS.PP() >= 3 and (GS.SpellCDDuration(wake_of_ashes) < GS.GCD()*2 and artifact.wake_of_ashes.enabled or GS.Aura("player", 207635) and GS.AuraRemaining("player", 207635, GS.GCD())) and (not GS.Talent72 or GS.SpellCDDuration(crusade) > GS.GCD()*4) then GS.Cast(_, templars_verdict, _, _, _, _, "Templar's Verdict: Wake of Ashes Dump HP|Whisper of the Nathrezim About to Expire") return end
-                                    -- actions.BoW+=/wake_of_ashes,if=holy_power<=1|(holy_power<=2&cooldown.blade_of_wrath.remains>gcd&(cooldown.zeal.charges_fractional<=0.67|cooldown.crusader_strike.charges_fractional<=0.67))
-                                    if GS.Talent21 and GS.Aura("target", 197277, "", "PLAYER") and GS.Aura("player", divine_purpose) then
-                                        if GS.AoE and GS.SIR(divine_storm) and GS.PlayerCount(8, _, 2, ">=") then GS.Cast(_, divine_storm, _, _, _, _, "Divine Storm: Dump Divine Purpose") return end
-                                        if GS.Talent51 and GS.SCA(justicars_vengeance) and not GS.IsEquipped(whisper_of_the_nathrezim) then GS.Cast(_, justicars_vengeance, _, _, _, _, "Justicar's Vengeance: Dump Divine Purpose") return end
-                                        if GS.SCA(templars_verdict) and GS.Aura("target", 197277, "", "PLAYER") then GS.Cast(_, templars_verdict, _, _, _, _, "Templar's Verdict: Dump Divine Purpose") return end
-                                    end
-                                    if GS.Talent22 then
-                                        if GS.SCA(zeal) and GetSpellCharges(zeal) and GS.PP() <= 4 then GS.Cast(_, zeal, _, _, _, _, "Zeal: Capped Charges") return end
-                                    else
-                                        if GS.SCA(35395) and GetSpellCharges(35395) == 2 and GS.PP() <= 4 then GS.Cast(_, 35395, _, _, _, _, "Crusader Strike: Capped Charges") return end
-                                    end
-                                    if GS.SCA(blade_of_wrath) and (GS.PP() <= 2 or GS.PP() <= 3 and GS.FracCalc("spell", GS.Talent22 and zeal or 35395) <= 1.34) then GS.Cast(_, blade_of_wrath, _, _, _, _, "Blade of Wrath") return end
-                                    if GS.Talent21 and GS.SCA(35395) and GetSpellCharges(35395) == 2 and GS.PP() <= 4 then GS.Cast(_, 35395, _, _, _, _, "Crusader Strike: Capped Charges") return end
-                                    if GS.SCA(20271) then GS.Cast(_, 20271, _, _, _, _, "Judgment") return end
-                                    if GS.Talent13 and GS.SIR(consecration) and GS.Distance("target") < 8+UnitCombatReach("target") then GS.Cast(_, consecration, _, _, _, _, "Consecration") return end
-                                    if GS.Aura("target", 197277, "", "PLAYER") then
-                                        if GS.AoE and GS.SIR(divine_storm) and GS.PlayerCount(8, false, 2, ">=") then
-                                            if GS.Aura("player", divine_purpose) then GS.Cast(_, divine_storm, _, _, _, _, "Divine Storm: Divine Purpose") return end
-                                            if GS.Aura("player", 209785) and (not GS.Talent72 or GS.SpellCDDuration(crusade) > GS.GCD()*3) then GS.Cast(_, divine_storm, _, _, _, _, "Divine Storm: Dump Fires of Justice") return end
-                                            if (GS.PP() >= 4 or GS.Talent71) and (not GS.Talent72 or GS.SpellCDDuration(crusade) > GS.GCD()*4) then GS.Cast(_, divine_storm, _, _, _, _, "Divine Storm: Dump HP|Fish for Divine Purpose") return end
-                                        end
-                                        if GS.Talent51 and GS.SCA(justicars_vengeance) and not GS.IsEquipped(whisper_of_the_nathrezim) then GS.Cast(_, justicars_vengeance, _, _, _, _, "Justicar's Vengeance") return end
-                                        if GS.SCA(templars_verdict) then
-                                            if GS.Aura("player", divine_purpose) then GS.Cast(_, templars_verdict, _, _, _, _, "Templar's Verdict: Divine Purpose") return end
-                                            if GS.Aura("player", 209785) and (not GS.Talent72 or GS.SpellCDDuration(crusade) > GS.GCD()*3) then GS.Cast(_, templars_verdict, _, _, _, _, "Templar's Verdict: Dump Fires of Justice") return end
-                                            if (GS.PP() >= 4 or GS.Talent71) and (not GS.Talent72 or GS.SpellCDDuration(crusade) > GS.GCD()*4) then GS.Cast(_, templars_verdict, _, _, _, _, "Templar's Verdict: Dump HP|Fish for Divine Purpose") return end
-                                        end
-                                    end
-                                    if GS.Talent22 then
-                                        if GS.SCA(zeal) and GS.PP() <= 4 then GS.Cast(_, zeal, _, _, _, _, "Zeal") return end
-                                    else
-                                        if GS.SCA(35395) and GS.PP() <= 4 then GS.Cast(_, 35395, _, _, _, _, "Crusader Strike") return end
-                                    end
-
-                                    if GS.AoE and GS.PP() >= 3 and GS.SIR(divine_storm) and GS.Aura("target", 197277, "", "PLAYER") and GS.PlayerCount(8, _, 2, ">=") and (not GS.Talent72 or GS.SpellCDDuration(crusade) > GS.GCD()*5) then GS.Cast(_, divine_storm, _, _, _, _, "Divine Storm") return end
-                                    if GS.PP() >= 3 and GS.SCA(templars_verdict) and GS.Aura("target", 197277, "", "PLAYER") and GS.PP() >= 3 and (not GS.Talent72 or GS.SpellCDDuration(crusade) > GS.GCD()*5) then GS.Cast(_, templars_verdict, _, _, _, _, "Templar's Verdict") return end
-                                elseif GS.Talent43 then -- Divine Hammer
-                                    if GS.Aura("target", 197277, "", "PLAYER") then
-                                        if GS.AoE and GS.SIR(divine_storm) and GS.PlayerCount(8, false, 2, ">=") then
-                                            if GS.Aura("player", divine_purpose) and GS.AuraRemaining("player", divine_purpose, GS.GCD()*2) then GS.Cast(_, divine_storm, _, _, _, _, "Divine Storm: Divine Purpose About to Expire") return end
-                                            if GS.PP() >= 5 and GS.Aura("player", divine_purpose) then GS.Cast(_, divine_storm, _, _, _, _, "Divine Storm: Divine Purpose + 5 HP") return end
-                                            if GS.PP() >= 5 and (not GS.Talent72 or GS.SpellCDDuration(crusade) > GS.GCD()*3) then GS.Cast(_, divine_storm, _, _, _, _, "Divine Storm: Dump HP") return end
-                                        end
-                                        if GS.Talent51 and GS.SCA(justicars_vengeance) and GS.Aura("player", divine_purpose) and not GS.IsEquipped(whisper_of_the_nathrezim) then
-                                            if GS.AuraRemaining("player", divine_purpose, GS.GCD()*2) then GS.Cast(_, justicars_vengeance, _, _, _, _, "Justicar's Vengeance: Divine Purpose About to Expire") return end
-                                            if GS.PP() >= 5 then GS.Cast(_, justicars_vengeance, _, _, _, _, "Justicar's Vengeance: Divine Purpose + 5 HP") return end
-                                        end
-                                        if GS.SCA(templars_verdict) then
-                                            if GS.Aura("player", divine_purpose) and GS.AuraRemaining("player", divine_purpose, GS.GCD()*2) then GS.Cast(_, templars_verdict, _, _, _, _, "Templar's Verdict: Divine Purpose About to Expire") return end
-                                            if GS.PP() >= 5 and GS.Aura("player", divine_purpose) then GS.Cast(_, templars_verdict, _, _, _, _, "Templar's Verdict: Divine Purpose + 5 HP") return end
-                                            if GS.PP() >= 5 and (not GS.Talent72 or GS.SpellCDDuration(crusade) > GS.GCD()*3) then GS.Cast(_, templars_verdict, _, _, _, _, "Templar's Verdict: Dump HP") return end
-                                        end
-                                    end
-                                    -- actions.DH+=/divine_storm,if=holy_power>=3&spell_targets.divine_storm>=2&(cooldown.wake_of_ashes.remains<gcd*2&artifact.wake_of_ashes.enabled|buff.whisper_of_the_nathrezim.up&buff.whisper_of_the_nathrezim.remains<gcd)&(!talent.crusade.enabled|cooldown.crusade.remains>gcd*4)
-                                    -- actions.DH+=/justicars_vengeance,if=holy_power>=3&buff.divine_purpose.up&cooldown.wake_of_ashes.remains<gcd*2&artifact.wake_of_ashes.enabled&!equipped.whisper_of_the_nathrezim
-                                    -- actions.DH+=/templars_verdict,if=holy_power>=3&(cooldown.wake_of_ashes.remains<gcd*2&artifact.wake_of_ashes.enabled|buff.whisper_of_the_nathrezim.up&buff.whisper_of_the_nathrezim.remains<gcd)&(!talent.crusade.enabled|cooldown.crusade.remains>gcd*4)
-                                    -- actions.DH+=/wake_of_ashes,if=holy_power<=1|(holy_power<=2&cooldown.divine_hammer.remains>gcd&(cooldown.zeal.charges_fractional<=0.67|cooldown.crusader_strike.charges_fractional<=0.67))
-                                    if GS.Talent22 then
-                                        if GS.SCA(zeal) and GetSpellCharges(zeal) and GS.PP() <= 4 then GS.Cast(_, zeal, _, _, _, _, "Zeal: Capped Charges") return end
-                                    else
-                                        if GS.SCA(35395) and GetSpellCharges(35395) == 2 and GS.PP() <= 4 then GS.Cast(_, 35395, _, _, _, _, "Crusader Strike: Capped Charges") return end
-                                    end
-                                    if GS.SIR(divine_hammer) and GS.PP() <= 3 then GS.Cast(_, divine_hammer, _, _, _, _, "Divine Hammer") return end
-                                    if GS.Talent21 and GS.SCA(35395) and GetSpellCharges(35395) == 2 and GS.PP() <= 4 then GS.Cast(_, 35395, _, _, _, _, "Crusader Strike: Capped Charges") return end
-                                    if GS.SCA(20271) then GS.Cast(_, 20271, _, _, _, _, "Judgment") return end
-                                    if GS.Talent13 and GS.SIR(consecration) and GS.Distance("target") < 8+UnitCombatReach("target") then GS.Cast(_, consecration, _, _, _, _, "Consecration") return end
-                                    if GS.Aura("target", 197277, "", "PLAYER") then
-                                        if GS.AoE and GS.SIR(divine_storm) and GS.PlayerCount(8, false, 2, ">=") then
-                                            if GS.Aura("player", divine_purpose) then GS.Cast(_, divine_storm, _, _, _, _, "Divine Storm: Divine Purpose") return end
-                                            if GS.Aura("player", 209785) and (not GS.Talent72 or GS.SpellCDDuration(crusade) > GS.GCD()*5) then GS.Cast(_, divine_storm, _, _, _, _, "Divine Storm: Dump Fires of Justice") return end
-                                            if (not GS.Talent72 or GS.SpellCDDuration(crusade) > GS.GCD()*6) then GS.Cast(_, divine_storm, _, _, _, _, "Divine Storm") return end
-                                        end
-                                        if GS.Talent51 and GS.SCA(justicars_vengeance) and GS.Aura("player", divine_purpose) and not GS.IsEquipped(whisper_of_the_nathrezim) then GS.Cast(_, justicars_vengeance, _, _, _, _, "Justicar's Vengeance: Divine Purpose") return end
-                                        if GS.SCA(templars_verdict) then
-                                            if GS.Aura("player", divine_purpose) then GS.Cast(_, templars_verdict, _, _, _, _, "Templar's Verdict: Divine Purpose") return end
-                                            if GS.Aura("player", 209785) and (not GS.Talent72 or GS.SpellCDDuration(crusade) > GS.GCD()*5) then GS.Cast(_, templars_verdict, _, _, _, _, "Templar's Verdict: Dump Fires of Justice") return end
-                                            if (not GS.Talent72 or GS.SpellCDDuration(crusade) > GS.GCD()*6) then GS.Cast(_, templars_verdict, _, _, _, _, "Templar's Verdict") return end
-                                        end
-                                    end
-                                    if GS.Talent22 then
-                                        if GS.SCA(zeal) and GS.PP() <= 4 then GS.Cast(_, zeal, _, _, _, _, "Zeal") return end
-                                    else
-                                        if GS.SCA(35395) and GS.PP() <= 4 then GS.Cast(_, 35395, _, _, _, _, "Crusader Strike") return end
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-
-        -- Hunters
-            do
-                local focus = GS.PP
-                local arcane_torrent = 80483 -- todo: verify
-                local blood_fury = 20572
-                local a_murder_of_crows = 131894
-                local barrage = 120360
-                local multishot = 2643
-
-                do -- Beast Mastery
-                    -- talents=1102012
-                    -- artifact=56:0:0:0:0:869:3:872:3:874:3:875:3:878:1:881:1:882:1:1095:3:1336:1
-                    local aspect_of_the_wild = 193530
-                    local bestial_wrath      =  19574
-                    local chimaera_shot      =  53209
-                    local cobra_shot         = 193455
-                    local dire_beast         = 120679
-                    local dire_frenzy        = 217200
-                    local kill_command       =  34026
-                    local stampede           = 201430
-
-                    function GS.HUNTER1()
-                        if UnitAffectingCombat("player") then
-                            if GS.IsCH() then return end
-                            if GS.ValidTarget() and (not GSR.ChaosMode or GetTime() > GS.SpellThrottle) then
-                                if GS.CDs then
-                                    -- actions+=/use_item,name=moonlit_prism
-                                    if GS.SIR(arcane_torrent) and focus("deficit") >= 30 then GS.Cast(_, arcane_torrent, _, _, _, _, "Arcane Torrent Belf Racial Hunter") return end
-                                    if GS.SIR(blood_fury) then GS.Cast(_, blood_fury, _, _, _, _, "Blood Fury Orc Racial AP") return end
-                                    if GS.SIR(berserking) then GS.Cast(_, berserking, _, _, _, _, "Berserking Troll Racial") return end
-                                end
-                                if GS.Talent61 and GS.SCA(a_murder_of_crows) then GS.Cast(_, a_murder_of_crows, _, _, _, _, "A Murder of Crows") return end
-                                if GS.CDs and GS.Talent71 and GS.SIR(stampede) and (GS.Bloodlust() or GS.UnitIsBoss("target") and GS.GetTTD() <= 15) then GS.Cast("target", stampede, _, _, _, _, "Stampede") return end
-                                if GS.SpellCDDuration(bestial_wrath) > 2 then
-                                    if not GS.Talent22 then
-                                        if GS.SCA(dire_beast) then GS.Cast(_, dire_beast, _, _, _, _, "Dire Beast") return end
-                                    else
-                                        if GS.SCA(dire_frenzy) then GS.Cast(_, dire_frenzy, _, _, _, _, "Dire Frenzy") return end
-                                    end
-                                end
-                                if GS.CDs and GS.SIR(aspect_of_the_wild) and GS.Aura("player", bestial_wrath) then GS.Cast(_, aspect_of_the_wild, _, _, _, _, "Aspect of the Wild") return end
-                                if GS.Talent62 and GS.SIR(barrage) and (GS.AoE and GS.TargetCount(8) > 1 or GS.TargetCount(8) == 1 and focus() > 90) then GS.Cast(_, barrage, _, _, _, _, "Barrage") return end
-                                -- actions+=/titans_thunder,if=cooldown.dire_beast.remains>=3|talent.dire_frenzy.enabled
-                                if GS.SIR(bestial_wrath) then GS.Cast(_, bestial_wrath, _, _, _, _, "Bestial Wrath") return end
-                                if GS.AoE and GS.SCA(multishot) and GS.TargetCount(8) >= 3 and not GS.Aura("pet", 118455) then GS.Cast(_, multishot, _, _, _, _, "Multi-Shot: Beast Cleave") return end
-                                if GS.SIR(kill_command) then
-                                    if GSR.KillCommandPet then
-                                        if UnitExists("pettarget") and GS.Distance("pet", "pettarget") < 25 then GS.Cast("pettarget", kill_command, _, _, _, _, "Kill Command: Pet") return end
-                                    else
-                                        if GS.Distance("target", "pet") < 25 then GS.Cast(_, kill_command, _, _, _, _, "Kill Command") return end
-                                    end
-                                end
-                                if GS.Talent23 and GS.SCA(chimaera_shot) and focus() < 90 then GS.Cast(_, chimaera_shot, _, _, _, _, "Chimaera Shot") return end
-                                if GS.SCA(cobra_shot) and (GS.Talent72 and (GS.SpellCDDuration(bestial_wrath) >= 4 and GS.Aura("player", bestial_wrath) and GS.SpellCDDuration(kill_command) >= 2 or focus() > 119) or not GS.Talent72 and focus() > 90) then GS.Cast(_, cobra_shot, _, _, _, _, "Cobra Shot") return end
-                            end
-                        end
-                    end
-                end
-
-                do -- Marksmanship
-                    -- talents=1103021
-                    -- artifact=55:0:0:0:0:307:1:308:1:310:1:312:3:313:2:315:3:319:3:320:3:322:1:1337:1
-                    local aimed_shot = 19434
-                    local arcane_shot = 185358
-                    local black_arrow = 194599
-                    local bullseye = 204090 -- todo: verify
-                    local hunters_mark = 185365
-                    local marked_shot = 185901
-                    local marking_targets = 223138
-                    local piercing_shot = 198670
-                    local sentinel = 206817
-                    local sidewinders = 214579
-                    local steady_focus = 193534
-                    local true_aim = 199803
-                    local trueshot = 193526
-                    local vulnerable = 187131
-
-                    function GS.HUNTER2()
-                        if UnitAffectingCombat("player")  then
-                            if GS.IsCH() then return end
-                            if GS.ValidTarget() and (not GSR.ChaosMode or GetTime() > GS.SpellThrottle) then
-                                StartAttack("target")
-                                if GS.CDs then
-                                    -- actions+=/use_item,name=moonlit_prism
-                                    if GS.SIR(arcane_torrent) and focus("deficit") >= 30 then GS.Cast(_, arcane_torrent, _, _, _, _, "Arcane Torrent Belf Racial Hunter") return end
-                                    if GS.SIR(blood_fury) then GS.Cast(_, blood_fury, _, _, _, _, "Blood Fury Orc Racial AP") return end
-                                    if GS.SIR(berserking) then GS.Cast(_, berserking, _, _, _, _, "Berserking Troll Racial") return end
-                                    if GS.SIR(trueshot) and (GS.GetTTD() < math.huge and GS.GetTTD() > 195 or GS.UnitIsBoss() and GS.Health("target", _, true) < 5 or GS.AuraStacks("player", bullseye, 16)) then GS.Cast(_, trueshot, _, _, _, _, "Trueshot") return end
-                                end
-                                if GS.SCA(marked_shot) and not GS.Talent71 and GS.DebugTable["ogSpell"] == 206817 and GS.Aura("target", hunters_mark, "", "PLAYER") then GS.Cast(_, marked_shot, _, _, _, _, "Marked Shot: Sentinel") return end
-                                if GS.Talent13 and GS.Health("target", _, true) > 80 and (not GS.AoE or not GS.Talent62 or GS.TargetCount(8) == 1) then
-                                    -- actions.careful_aim=windburst
-                                    if GS.SCA(arcane_shot) and (GS.Talent12 and not GS.Aura("player", steady_focus) or GS.Talent23 and (not GS.Aura("target", true_aim, "", "PLAYER") and focus("deficit")/GetPowerRegen() >= 2 or GS.AuraRemaining("target", true_aim, 2, "", "PLAYER"))) then GS.Cast(_, arcane_shot, _, _, _, _, "Arcane Shot: Careful Aim, Steady Focus|True Aim") return end
-                                    if GS.SCA(marked_shot) and (GS.Talent71 and (not GS.Talent43 or GS.AuraRemaining("target", vulnerable, 2, "", "PLAYER")) or not GS.Talent71) then GS.Cast(_, marked_shot, _, _, _, _, "Marked Shot: Careful Aim") return end
-                                    if GS.SCA(aimed_shot) and not GS.Aura("target", hunters_mark, "", "PLAYER") and not GS.AuraRemaining("target", vulnerable, GS.CastTime(aimed_shot), "", "PLAYER") then GS.Cast(_, aimed_shot, _, _, _, _, "Aimed Shot: Careful Aim") return end
-                                    if not GS.Talent71 then
-                                        if GS.AoE and GS.SCA(multishot) and GS.TargetCount(8) > 1 and (GS.Aura("player", marking_targets) or focus("deficit")/GetPowerRegen() >= 2) then GS.Cast(_, multishot, _, _, _, _, "Multi-Shot: Careful Aim") return end
-                                        if GS.SCA(arcane_shot) and (GS.Aura("player", marking_targets) or focus("deficit")/GetPowerRegen() >= 2) then GS.Cast(_, arcane_shot, _, _, _, _, "Arcane Shot: Careful Aim") return end
-                                    else
-                                        if GS.SCA(sidewinders) and not GS.Aura("target", hunters_mark, "", "PLAYER") and (GS.Aura("player", marking_targets) or GS.Aura("player", trueshot) or GetSpellCharges(sidewinders) == 2 or focus() < 80 and GetSpellCharges(sidewinders) <= 1 and GS.ChargeCD(sidewinders) <= 5) then GS.Cast(_, sidewinders, _, _, _, _, "Sidewinders: Careful Aim") return end
-                                    end
-                                end
-                                if GS.Talent61 then
-                                    if GS.SCA(a_murder_of_crows) then GS.Cast(_, a_murder_of_crows, _, _, _, _, "A Murder of Crows") return end
-                                elseif GS.Talent62 then
-                                    if GS.SCA(barrage) then GS.Cast(_, barrage, _, _, _, _, "Barrage") return end
-                                end
-                                if GS.Talent72 and not GS.Talent43 and focus() > 50 then GS.Cast(_, piercing_shot, _, _, _, _, "Piercing Shot: Patientless Sniper") return end
-                                -- actions+=/windburst
-                                if not GS.Talent43 then
-                                    if not GS.Talent71 then
-                                        if GS.AoE and GS.TargetCount(8) > 1 and GS.SCA(multishot) and not GS.AuraStacks("target", vulnerable, 3, "", "PLAYER") and GS.Aura("player", marking_targets) and not GS.Aura("target", hunters_mark, "", "PLAYER") then GS.Cast(_, multishot, _, _, _, _, "Multi-Shot") return end
-                                        if GS.SCA(arcane_shot) and not GS.AuraStacks("target", vulnerable, 3, "", "PLAYER") and GS.Aura("player", marking_targets) and not GS.Aura("target", hunters_mark, "", "PLAYER") then GS.Cast(_, arcane_shot, _, _, _, _, "Arcane Shot: Mark Targets To Build 3 Vulnerable Stacks") return end
-                                    end
-                                    if GS.SCA(marked_shot) and (not GS.AuraStacks("target", vulnerable, 3, "", "PLAYER") or GS.AuraRemaining("target", hunters_mark, 5, "", "PLAYER") or focus() < 50 or focus() > 80) then GS.Cast(_, marked_shot, _, _, _, _, "Marked Shot: Build Vulnerable Stacks|Hunter's Mark About to Expire|Focus Management") end
-                                    if GS.AoE and GS.Talent42 and not GS.Talent71 and GS.SCA(sentinel) and not GS.Aura("target", hunters_mark, "", "PLAYER") and GS.TargetCount(8) > 1 then GS.Cast(_, sentinel, _, _, _, _, "Sentinel") return end
-                                    -- actions.patientless+=/explosive_shot
-                                    if GS.SCA(aimed_shot) and not GS.Aura("target", hunters_mark, "", "PLAYER") and not GS.AuraRemaining("target", vulnerable, GS.CastTime(aimed_shot), "", "PLAYER") then GS.Cast(_, aimed_shot, _, _, _, _, "Aimed Shot") return end
-                                    if GS.SCA(marked_shot) and not GS.AuraRemaining("target", hunters_mark, 5, "", "PLAYER") then GS.Cast(_, marked_shot, _, _, _, _, "Marked Shot") end
-                                    if GS.Talent22 and GS.SCA(black_arrow) then GS.Cast(_, black_arrow, _, _, _, _, "Black Arrow: Patientless") return end
-                                    if not GS.Talent71 then
-                                        if GS.AoE and GS.TargetCount(8) > 1 and GS.SCA(multishot) and GetPowerRegen()*(GS.CastTime(aimed_shot)+GS.GCD()) <= focus("deficit") then GS.Cast(_, multishot, _, _, _, _, "Multi-Shot") return end
-                                        if GS.SCA(arcane_shot) and GetPowerRegen()*(GS.CastTime(aimed_shot)+GS.GCD()) <= focus("deficit") then GS.Cast(_, arcane_shot, _, _, _, _, "Arcane Shot") return end
-                                    end
-                                end
-                                if not GS.Talent71 then
-                                    if GS.SCA(arcane_shot) and GS.Talent23 and not GS.AuraStacks("target", true_aim, 1, "", "PLAYER") and focus("deficit")/GetPowerRegen() >= 2 then GS.Cast(_, arcane_shot, _, _, _, _, "Arcane Shot: True Aim") return end
-                                    if GS.AoE and GS.SCA(multishot) and GS.TargetCount(8) > 1  and GS.Talent12 and not GS.Aura("player", steady_focus) and (focus("deficit")/GetPowerRegen()) >= 2 then GS.Cast(_, multishot, _, _, _, _, "Multi-Shot: Steady Focus") return end
-                                    if GS.SCA(arcane_shot) and GS.Talent12 and not GS.Aura("player", steady_focus) and focus("deficit")/GetPowerRegen() >= 2 then GS.Cast(_, arcane_shot, _, _, _, _, "Arcane Shot: Steady Focus") return end
-                                else
-                                    if GS.AoE and GS.SCA(sidewinders) and GS.PlayerCount(8, _, 1, ">") and not GS.Aura("target", hunters_mark, "", "PLAYER") and (GS.Aura("player", marking_targets) or GS.Aura("player", trueshot) or GetSpellCharges(sidewinders) == 2 or focus() < 80 and GetSpellCharges(sidewinders) <= 1 and GS.ChargeCD(sidewinders) <= 5) then GS.Cast(_, sidewinders, _, _, _, _, "Sidewinders: AoE Mark") return end
-                                end
-                                -- actions+=/explosive_shot
-                                if GS.Talent72 and GS.Talent43 and focus() > 80 then GS.Cast(_, piercing_shot, _, _, _, _, "Piercing Shot: Patient Sniper") return end
-                                if GS.SCA(marked_shot) and (GS.Talent71 and (not GS.Talent43 or GS.AuraRemaining("target", vulnerable, 2, "", "PLAYER")) or not GS.Talent71) then GS.Cast(_, marked_shot, _, _, _, _, "Marked Shot") return end
-                                if GS.SCA(aimed_shot) and not GS.AuraRemaining("target", vulnerable, GS.CastTime(aimed_shot), "", "PLAYER") and (focus()+GetPowerRegen()*GS.CastTime(aimed_shot) > 80 or not GS.Aura("target", hunters_mark, "", "PLAYER")) then GS.Cast(_, aimed_shot, _, _, _, _, "Aimed Shot") return end
-                                if GS.Talent22 and GS.SCA(black_arrow) then GS.Cast(_, black_arrow, _, _, _, _, "Black Arrow") return end
-                                if not GS.Talent71 then
-                                    if GS.AoE and GS.SCA(multishot) and GS.TargetCount(8) > 1 and (not GS.Aura("target", hunters_mark, "", "PLAYER") and not GS.Aura("player", marking_targets) and (GS.GCD()+GS.CastTime(aimed_shot))*GetPowerRegen() <= focus("deficit")) then GS.Cast(_, multishot, _, _, _, _, "Multi-Shot") return end
-                                    if GS.SCA(arcane_shot) and (not GS.Aura("target", hunters_mark, "", "PLAYER") and GS.Aura("player", marking_targets) or focus("deficit")/GetPowerRegen() >= 2) then GS.Cast(_, arcane_shot, _, _, _, _, "Arcane Shot") return end
-                                else
-                                    if GS.SCA(sidewinders) and not GS.Aura("target", hunters_mark, "", "PLAYER") and (GS.Aura("player", marking_targets) or GS.Aura("player", trueshot) or GetSpellCharges(sidewinders) == 2 or focus() < 80 and GetSpellCharges(sidewinders) <= 1 and GS.ChargeCD(sidewinders) <= 5) then GS.Cast(_, sidewinders, _, _, _, _, "Sidewinders") return end
-                                end
-                                
-
-                                
-                            end
-                        end
-                    end
-                end
-
-
-                do -- Survival
-                    -- talents=3302022
-                    -- artifact=34:0:0:0:0:1068:1:1070:2:1072:3:1073:3:1075:3:1076:3:1080:1:1082:1:1084:1:1338:1
-                    local a_murder_of_crows = 206505
-                    local explosive_trap = 191433
-                    local dragonsfire_grenade = 194855
-                    local carve = 187708
-                    local raptor_strike = 186270
-                    local serpent_sting = 118253
-                    local moknathal_tactics = 201081
-                    local aspect_of_the_eagle = 186289
-                    local mongoose_bite = 190928
-                    local mongoose_fury = 190931
-                    local lacerate = 185855
-                    local snake_hunter = 201078
-                    local flanking_strike = 202800
-                    local butchery = 212436
-                    local throwing_axes = 200163
-
-                    function GS.HUNTER3()
-                        if UnitAffectingCombat("player") then
-                            if GS.IsCH() then return end
-                            if GS.ValidTarget() and (not GSR.ChaosMode or GetTime() > GS.SpellThrottle) then
-                                if GS.CDs then
-                                    if GS.SIR(arcane_torrent) and focus("deficit") >= 30 then GS.Cast(_, arcane_torrent, _, _, _, _, "Arcane Torrent Belf Racial Hunter") return end
-                                    if GS.SIR(blood_fury) then GS.Cast(_, blood_fury, _, _, _, _, "Blood Fury Orc Racial AP") return end
-                                    if GS.SIR(berserking) then GS.Cast(_, berserking, _, _, _, _, "Berserking Troll Racial") return end
-                                    -- actions+=/use_item,name=moonlit_prism
-                                end
-                                if GS.SIR(explosive_trap) then GS.Cast(_, explosive_trap, _, _, _, _, "Explosive Trap") return end
-                                if GS.Talent62 and GS.SCA(dragonsfire_grenade) then GS.Cast(_, dragonsfire_grenade, _, _, _, _, "Dragonsfire Grenade") return end
-                                if GS.Talent63 and GS.AoE then
-                                    if GS.PlayerCount(8) >= 3 then
-                                        if GS.SIR(carve) and GS.CheckSerpentSting() then GS.Cast(_, carve, _, _, _, _, "Carve: Serpent Sting") return end
-                                    elseif GS.PlayerCount(8) == 2 then
-                                        if GS.SCA(raptor_strike) and GS.AuraRemaining("target", serpent_sting, GS.GCD()) then GS.Cast(_, raptor_strike, _, _, _, _, "Raptor Strike: Serpent Sting") return end
-                                        for i = 1, mobTargetsSize do
-                                            rotationUnitIterator = GS.MobTargets[i]
-                                            if GS.SCA(raptor_strike, rotationUnitIterator) and GS.AuraRemaining(rotationUnitIterator, serpent_sting, GS.GCD(), "", "PLAYER") then GS.Cast(rotationUnitIterator, raptor_strike, _, _, _, _, "Raptor Strike: Serpent Sting") return end
-                                        end
-                                    end
-                                end
-                                if GS.Talent13 and GS.SCA(raptor_strike) and GS.AuraRemaining("player", moknathal_tactics, GS.GCD()) then GS.Cast(_, raptor_strike, _, _, _, _, "Raptor Strike: Mok'Nathal Tactics") return end
-                                if GS.CDs and GS.SIR(aspect_of_the_eagle) and GS.SIR(mongoose_bite) then GS.Cast("player", aspect_of_the_eagle, _, _, _, _, "Aspect of the Eagle") return end
-                                -- actions+=/fury_of_the_eagle,if=buff.mongoose_fury.up&buff.mongoose_fury.remains<=gcd.max*2
-                                if GS.SCA(mongoose_bite) and (GS.Aura("player", mongoose_fury) --[[or cooldown.fury_of_the_eagle.remains<5]] or GetSpellCharges(mongoose_bite) == 3) then GS.Cast(_, mongoose_bite, _, _, _, _, "Mongoose Bite") return end
-                                -- actions+=/steel_trap
-                                if GS.Talent21 and GS.SCA(a_murder_of_crows) then GS.Cast(_, a_murder_of_crows, _, _, _, _, "A Murder of Crows") return end
-                                if GS.SCA(lacerate) and (GS.Aura("target", lacerate, "", "PLAYER") and GS.AuraRemaining("target", lacerate, 3, "", "PLAYER") or --[[GS.UnitIsBoss("target")]]GS.GetTTD() < math.huge and GS.GetTTD() >= 5) then GS.Cast(_, lacerate, _, _, _, _, "Lacerate") return end
-                                if GS.Talent23 and GS.SIR(snake_hunter) and GetSpellCharges(mongoose_bite) == 0--[[<= 1]] and not GS.AuraRemaining("player", mongoose_fury, GS.GCD()*4) then GS.Cast(_, snake_hunter, _, _, _, _, "Snake Hunter") return end
-                                if GS.SCA(flanking_strike) and focus() >= 55 and (GS.Talent13 and not GS.AuraRemaining("player", moknathal_tactics, 3) or not GS.Talent13) then GS.Cast(_, flanking_strike, _, _, _, _, "Flanking Strike") return end
-                                if GS.AoE then
-                                    if GS.Talent61 then
-                                        if GS.SIR(butchery) and GS.PlayerCount(8) >= 2 then GS.Cast(_, butchery, _, _, _, _, "Butchery") return end
-                                    else
-                                        if GS.SIR(carve) and GS.PlayerCount(8) >= 4 then GS.Cast(_, carve, _, _, _, _, "Carve") return end
-                                    end
-                                end
-                                -- actions+=/spitting_cobra
-                                if GS.Talent12 and GS.SCA(throwing_axes) then GS.Cast(_, throwing_axes, _, _, _, _, "Throwing Axes") return end
-                                if GS.SCA(raptor_strike) and focus() > 75 - GS.SpellCDDuration(flanking_strike) * GetPowerRegen() then GS.Cast(_, raptor_strike, _, _, _, _, "Raptor Strike") return end
-                            end
-                        end
-                    end
-                end
-            end
-
-        -- Rogues
-            do
-                local blood_fury = 20572
-                local arcane_torrent = 25046
-                local vanish = {spell = 1856}
-                local stealth = {spell = 1784}
-                local marked_for_death = 137619
-                local death_from_above = 152150
-
-                do -- Assassination
-                    function GS.ROGUE1()
-                        -- talents=3110131
-                        -- artifact=43:0:0:0:0:323:3:325:3:328:3:330:3:331:2:332:1:337:1:346:1:347:1:1276:1
-
-                        -- # This default action priority list is automatically created based on your character.
-                        -- # It is a attempt to provide you with a action list that is both simple and practicable,
-                        -- # while resulting in a meaningful and good simulation. It may not result in the absolutely highest possible dps.
-                        -- # Feel free to edit, adapt and improve it to your own needs.
-                        -- # SimulationCraft is always looking for updates and improvements to the default action lists.
-
-                        -- # Executed before combat begins. Accepts non-harmful actions only.
-
-                        -- actions.precombat=flask,type=flask_of_the_seventh_demon
-                        -- actions.precombat+=/augmentation,type=defiled
-                        -- actions.precombat+=/food,type=seedbattered_fish_plate
-                        -- # Snapshot raid buffed stats before combat begins and pre-potting is done.
-                        -- actions.precombat+=/snapshot_stats
-                        -- actions.precombat+=/apply_poison
-                        -- actions.precombat+=/stealth
-                        -- actions.precombat+=/potion,name=draenic_agility
-                        -- actions.precombat+=/marked_for_death
-
-                        -- # Executed every time the actor is available.
-
-                        -- actions=potion,name=draenic_agility,if=buff.bloodlust.react|target.time_to_die<=25|debuff.vendetta.up
-                        -- actions+=/blood_fury,if=debuff.vendetta.up
-                        -- actions+=/berserking,if=debuff.vendetta.up
-                        -- actions+=/arcane_torrent,if=debuff.vendetta.up&energy.deficit>50&!dot.rupture.exsanguinated&(cooldown.exsanguinate.remains>3|!artifact.urge_to_kill.enabled)
-                        -- actions+=/call_action_list,name=cds
-                        -- actions+=/rupture,if=combo_points>=2&!ticking&time<10&!artifact.urge_to_kill.enabled
-                        -- actions+=/rupture,if=combo_points>=4&!ticking
-                        -- actions+=/kingsbane,if=buff.vendetta.up|cooldown.vendetta.remains>30
-                        -- actions+=/run_action_list,name=exsang_combo,if=cooldown.exsanguinate.remains<3&talent.exsanguinate.enabled
-                        -- actions+=/call_action_list,name=garrote,if=spell_targets.fan_of_knives<=7
-                        -- actions+=/call_action_list,name=exsang,if=dot.rupture.exsanguinated&spell_targets.fan_of_knives<=2
-                        -- actions+=/call_action_list,name=finish
-                        -- actions+=/call_action_list,name=build
-
-                        -- #  Cooldowns
-                        -- actions.cds=marked_for_death,cycle_targets=1,target_if=min:target.time_to_die,if=combo_points.deficit>=5
-                        -- actions.cds+=/vendetta,if=target.time_to_die<20|artifact.urge_to_kill.enabled&dot.rupture.ticking&cooldown.exsanguinate.remains<8&(energy<55|time<10|spell_targets.fan_of_knives>=2)
-                        -- actions.cds+=/vendetta,if=target.time_to_die<20|!artifact.urge_to_kill.enabled&dot.rupture.ticking&cooldown.exsanguinate.remains<1
-                        -- actions.cds+=/vanish,if=talent.subterfuge.enabled&combo_points<=2&!dot.rupture.exsanguinated
-                        -- actions.cds+=/vanish,if=talent.shadow_focus.enabled&!dot.rupture.exsanguinated&combo_points.deficit>=2
-
-                        -- #  Exsanguinate Combo
-                        -- actions.exsang_combo=vanish,if=talent.nightstalker.enabled&combo_points>=cp_max_spend&cooldown.exsanguinate.remains<1&gcd.remains=0&energy>=25
-                        -- actions.exsang_combo+=/rupture,if=combo_points>=cp_max_spend&(buff.vanish.up|cooldown.vanish.remains>15)&cooldown.exsanguinate.remains<1
-                        -- actions.exsang_combo+=/exsanguinate,if=prev_gcd.rupture&dot.rupture.remains>25+4*talent.deeper_stratagem.enabled&cooldown.vanish.remains>10
-                        -- actions.exsang_combo+=/call_action_list,name=garrote,if=spell_targets.fan_of_knives<=7
-                        -- actions.exsang_combo+=/hemorrhage,if=spell_targets.fan_of_knives>=2&!ticking
-                        -- actions.exsang_combo+=/fan_of_knives,if=spell_targets>=2
-                        -- actions.exsang_combo+=/hemorrhage,if=combo_points.deficit=1|combo_points.deficit<=1&remains<10
-                        -- actions.exsang_combo+=/mutilate,if=combo_points.deficit<=1
-                        -- actions.exsang_combo+=/call_action_list,name=build
-
-                        -- #  Garrote
-                        -- actions.garrote=pool_resource,for_next=1
-                        -- actions.garrote+=/garrote,cycle_targets=1,if=talent.subterfuge.enabled&!ticking&combo_points.deficit>=1&spell_targets.fan_of_knives>=2
-                        -- actions.garrote+=/pool_resource,for_next=1
-                        -- actions.garrote+=/garrote,if=combo_points.deficit>=1&!exsanguinated
-
-                        -- #  Exsanguinated Rotation
-                        -- actions.exsang=rupture,if=combo_points>=cp_max_spend&ticks_remain<2
-                        -- actions.exsang+=/death_from_above,if=combo_points>=cp_max_spend-1&dot.rupture.remains>3
-                        -- actions.exsang+=/envenom,if=combo_points>=cp_max_spend-1&dot.rupture.remains>3
-                        -- actions.exsang+=/hemorrhage,if=combo_points.deficit>=1&debuff.hemorrhage.remains<1
-                        -- actions.exsang+=/hemorrhage,if=combo_points.deficit<=1
-                        -- actions.exsang+=/pool_resource,for_next=1
-                        -- actions.exsang+=/mutilate,if=combo_points.deficit>=2
-
-                        -- #  Finishers
-                        -- actions.finish=rupture,cycle_targets=1,if=!ticking&combo_points>=cp_max_spend&spell_targets.fan_of_knives>1&target.time_to_die-remains>6
-                        -- actions.finish+=/rupture,if=combo_points>=cp_max_spend&refreshable&!exsanguinated
-                        -- actions.finish+=/death_from_above,if=combo_points>=cp_max_spend-1&spell_targets.fan_of_knives<=6
-                        -- actions.finish+=/envenom,if=combo_points>=cp_max_spend-1&!dot.rupture.refreshable&buff.elaborate_planning.remains<2&energy.deficit<40&spell_targets.fan_of_knives<=6
-                        -- actions.finish+=/envenom,if=combo_points>=cp_max_spend&!dot.rupture.refreshable&buff.elaborate_planning.remains<2&cooldown.garrote.remains<1&spell_targets.fan_of_knives<=6
-
-                        -- actions.build=hemorrhage,cycle_targets=1,if=combo_points.deficit>=1&refreshable&dot.rupture.remains>6&spell_targets.fan_of_knives>1&spell_targets.fan_of_knives<=4
-                        -- actions.build+=/fan_of_knives,if=spell_targets>1&(combo_points.deficit>=1|spell_targets>=7)
-                        -- actions.build+=/hemorrhage,if=(combo_points.deficit>=1&refreshable)|(combo_points.deficit=1&dot.rupture.refreshable)
-                        -- actions.build+=/mutilate,if=combo_points.deficit>=2&cooldown.garrote.remains>2
-                    end
-                end
-
-                -- todo: verify Assassination Rogue
-
-                do -- Outlaw
-                    -- talents=2010022
-                    -- artifact=44:0:0:0:0:1052:1:1054:1:1057:1:1060:3:1061:3:1064:3:1065:3:1066:3:1348:1
-                    local adrenaline_rush       =  13750
-                    local ambush                =   8676
-                    local broadsides            = 193356
-                    local buried_treasure       = 199600
-                    local cannonball_barrage    = 185767
-                    local ghostly_strike        = 196937
-                    local grand_melee           = 193358
-                    local jolly_roger           = 199603
-                    local killing_spree         =  51690
-                    local opportunity           = 195627
-                    local pistol_shot           = 185763
-                    local roll_the_bones        = 193316
-                    local run_through           =   2098
-                    local saber_slash           = 193315
-                    local shark_infested_waters = 193357
-                    local slice_and_dice        =   5171
-                    local true_bearing          = 193359
-                    
-                    function GS.ROGUE2()
-                        if UnitAffectingCombat("player") then
-                            if GS.ValidTarget() and (not GSR.ChaosMode or GetTime() > GS.SpellThrottle) then
-                                -- actions=potion,name=draenic_agility,if=buff.bloodlust.react|target.time_to_die<=25|buff.adrenaline_rush.up
-                                -- actions+=/blade_flurry,if=(spell_targets.blade_flurry>=2&!buff.blade_flurry.up)|(spell_targets.blade_flurry<2&buff.blade_flurry.up)
-                                if GS.CDs then
-                                    if GS.SIR(blood_fury) then GS.Cast(_, blood_fury, _, _, _, _, "Blood Fury Orc Racial AP") return end
-                                    if GS.SIR(berserking) then GS.Cast(_, berserking, _, _, _, _, "Berserking Troll Racial") return end
-                                    if GS.SIR(arcane_torrent) and GS.PP("deficit") > 40 then GS.Cast(_, arcane_torrent, _, _, _, _, "Arcane Torrent Belf Racial Rogue") return end
-                                    if GS.SIR(adrenaline_rush) and not GS.Aura("player", adrenaline_rush) then GS.Cast("player", adrenaline_rush, _, _, _, _, "Adrenaline Rush") return end
-                                end
-                                if GS.PoolCheck(ambush) then return end
-                                if GS.SCA(ambush) then GS.Cast(_, ambush, _, _, _, _, "Ambush") return end
-                                if GS.CDs then
-                                    if GetNumGroupMembers() > 1 and GS.SpellCDDuration(61304) == 0 and not IsStealthed() then
-                                        if GS.SIR(1856) and GS.CP("deficit") >= 2 then
-                                            if GS.PP() < 60 then
-                                                return
-                                            else
-                                                GS.Cast(_, 1856, _, _, _, _, "Vanish")
-                                                return
-                                            end
-                                        end
-                                        if GS.SIR(58984) and GS.CP("deficit") >= 2 then
-                                            if GS.PP() < 60 then
-                                                return
-                                            else
-                                                GS.Cast(_, 58984, _, _, _, _, "Shadowmeld")
-                                                return
-                                            end
-                                        end
-                                    end
-                                end
-                                if GS.Talent71 then
-                                    if GS.SIR(slice_and_dice) and GS.CP() >= 5 and GS.AuraRemaining("player", slice_and_dice, GS.GetTTD()) and GS.AuraRemaining("player", slice_and_dice, 6) then GS.Cast("player", slice_and_dice, _, _, _, _, "Slice and Dice") return end
-                                else
-                                    if GS.SIR(roll_the_bones) and GS.CP() >= 5 and GS.RollTheBones("duration") < GS.GetTTD() and (GS.RollTheBones("duration") < 3 or GS.RollTheBones("duration") < 10.8/GS.RollTheBones("count") or GS.RollTheBones("count") <= 1 or GS.RollTheBones("count") == 2 and GS.Aura("player", grand_melee) and GS.Aura("player", buried_treasure)) then GS.Cast("player", roll_the_bones, _, _, _, _, "Roll The Bones") return end
-                                end
-                                if GS.CDs and GS.Talent63 and GS.SCA(killing_spree) and ((GS.PP("deficit"))/GetPowerRegen() > 5 or GS.PP() < 15) then GS.Cast(_, killing_spree, _, _, _, _, "Killing Spree") return end
-                                if GS.Talent61 and GS.SIR(cannonball_barrage) and #GS.SmartAoE(35, 6, true, true) >= 1 then
-                                    GS.SmartAoE(35, 6, true)
-                                    GS.Cast(_, cannonball_barrage, rotationXC, rotationYC, rotationZC, _, "Cannonball Barrage")
-                                    return
-                                end
-                                -- actions+=/curse_of_the_dreadblades,if=combo_points.deficit>=4
-                                if GS.Talent72 and GS.SIR(marked_for_death) and GS.CP("deficit") >= 4+(GS.Talent31 and 1 or 0) then
-                                    table.sort(GS.MobTargets, GS.SortMobTargetsByLowestTTD)
-                                    for i = 1, mobTargetsSize do
-                                        rotationUnitIterator = GS.MobTargets[i]
-                                        if GS.SCA(marked_for_death, rotationUnitIterator) then GS.Cast(rotationUnitIterator, marked_for_death, _, _, _, _, "Marked for Death") return end
-                                    end
-                                end
-                                if GS.CP() >= 5 + (GS.Talent31 and 1 or 0) then
-                                    if GS.Talent73 and GS.SCA(death_from_above) then GS.Cast(_, death_from_above, _, _, _, _, "Death from Above") return end
-                                    if GS.SCA(run_through) then GS.Cast(_, run_through, _, _, _, _, "Run Through") return end
-                                else
-                                    if GS.Talent11 and GS.SCA(ghostly_strike) and GS.AuraRemaining("target", ghostly_strike, 4.5, "", "PLAYER") then GS.Cast(_, ghostly_strike, _, _, _, _, "Ghostly Strike") return end
-                                    if GS.SCA(pistol_shot) and GS.Aura("player", opportunity) and GS.PP() < 60 then GS.Cast(_, pistol_shot, _, _, _, _, "Pistol Shot") return end
-                                    if GS.SCA(saber_slash) then GS.Cast(_, saber_slash, _, _, _, _, "Saber Slash") return end
-                                end
-                            end
-                        end
-                    end
-                end
-
-                do -- Subtlety
-                    -- talents=2210011
-                    -- artifact=17:0:0:0:0:851:1:852:3:854:3:858:3:859:3:860:3:862:1:864:1:1349:1
-                    local backstab            =     53
-                    local eneveloping_shadows = 206237
-                    local eviscerate          = 196819
-                    local gloomblade          = 200758
-                    local nightblade          = 195452
-                    local shadow_blades       = 121471
-                    local shadow_dance        =        {spell = 185313, buff = 185422}
-                    local shadowstrike        = 185438
-                    local shuriken_storm      = 197835
-                    local symbols_of_death    = 212283
-
-                    function GS.ROGUE3()
-                        if UnitAffectingCombat("player") then
-                            GS.MultiDoT("Nightblade")
-                            if GS.ValidTarget() and (not GSR.ChaosMode or GetTime() > GS.SpellThrottle) then
-                                -- actions=potion,name=draenic_agility,if=buff.bloodlust.react|target.time_to_die<=25|buff.shadow_blades.up
-                                if GS.CDs and (IsStealthed() or GS.Aura("player", shadow_dance.buff)) then
-                                    if GS.SIR(blood_fury) then GS.Cast(_, blood_fury, _, _, _, _, "Blood Fury Orc Racial AP") return end
-                                    if GS.SIR(berserking) then GS.Cast(_, berserking, _, _, _, _, "Berserking Troll Racial") return end
-                                    if GS.SIR(arcane_torrent) and GS.PP("deficit") > 70 then GS.Cast(_, arcane_torrent, _, _, _, _, "Arcane Torrent Belf Racial Rogue") return end
-                                    if GS.SIR(shadow_blades) and not GS.Aura("player", shadow_blades) and GS.PP("deficit") < 20 then GS.Cast(_, shadow_blades, _, _, _, _, "Shadow Blades") return end
-                                end
-                                -- actions+=/goremaws_bite,if=(combo_points.max-combo_points>=2&energy.deficit>55&time<10)|(combo_points.max-combo_points>=4&energy.deficit>45)|target.time_to_die<8
-                                if GS.SIR(symbols_of_death) and GS.AuraRemaining("player", symbols_of_death, GS.GetTTD()) and GS.AuraRemaining("player", symbols_of_death, 10.5) then GS.Cast(_, symbols_of_death, _, _, _, _, "Symbols of Death") return end -- todo: handle ttd better
-                                if GS.AoE and GS.SIR(shuriken_storm) and (IsStealthed() or GS.Aura("player", shadow_dance.buff)) then
-                                    if (GS.Talent61 and GS.CP("deficit") >= 3 and GS.PlayerCount(10) >= 7) or (--[[!buff.death.up&]] GS.CP("deficit") >= 2 and (not GS.Talent61 and GS.PlayerCount(10) >= 4 or GS.PlayerCount(10) >= 8)) then
-                                        GS.Cast(_, shuriken_storm, _, _, _, _, "Shuriken Storm: AoE")
-                                        return
-                                    end
-                                end
-                                if GS.SCA(shadowstrike) and GS.CP("deficit") >= 2 then GS.Cast(_, shadowstrike, _, _, _, _, "Shadowstrike") return end
-                                if GS.CDs and GS.SIR(1856) and (GS.CP("deficit") >= 3 and GetSpellCharges(shadow_dance.spell) < 2 or GS.UnitIsBoss("target") and GS.GetTTD() < 8) then
-                                    if GS.PP("deficit") > (GS.Talent71 and 30 or 0) then
-                                        return
-                                    else
-                                        GS.Cast(_, 1856, _, _, _, _, "Vanish")
-                                        return
-                                    end
-                                end
-                                if GS.SIR(shadow_dance.spell) and GS.CP("deficit") >= 2 and (GS.SpellCDDuration(1856) > 0 and GS.AuraRemaining("player", symbols_of_death, 10.5) or GetSpellCharges(shadow_dance.spell) >= 2 or GS.UnitIsBoss("target") and GS.GetTTD() < 25) then
-                                    if GS.PP("deficit") > (GS.Talent71 and 30 or 0) then
-                                        return
-                                    else
-                                        GS.Cast(_, shadow_dance.spell, _, _, _, _, "Shadow Dance")
-                                        return
-                                    end
-                                end
-                                if GS.SIR(58984) and GS.PP() > 40 and GS.CP("deficit") >= 3 and not (GS.Aura("player", shadow_dance.buff) or IsStealthed()) then GS.Cast(_, 58984, _, _, _, _, "Shadowmeld") return end
-                                if GS.Talent63 and GS.SIR(enveloping_shadows) and GS.AuraRemaining("player", enveloping_shadows, GS.GetTTD()) and (GS.AuraRemaining("player", enveloping_shadows, (10.8 + (GS.Talent31 and 1.8 or 0))) and GS.CP() >= 5 + (GS.Talent31 and 1 or 0) or GS.AuraRemaining("player", enveloping_shadows, 6)) then GS.Cast(_, enveloping_shadows, _, _, _, _, "Enveloping Shadows") return end
-                                if GS.Talent72 and GS.SIR(marked_for_death) and GS.CP("deficit") >= 4+(GS.Talent31 and 1 or 0) then
-                                    table.sort(GS.MobTargets, GS.SortMobTargetsByLowestTTD)
-                                    for i = 1, mobTargetsSize do
-                                        rotationUnitIterator = GS.MobTargets[i]
-                                        if GS.SCA(marked_for_death, rotationUnitIterator) then GS.Cast(rotationUnitIterator, marked_for_death, _, _, _, _, "Marked for Death") return end
-                                    end
-                                end
-                                if GS.CP() >= 5 then -- finishers
-                                    if GS.AoE and GS.Talent73 and GS.SCA(death_from_above) and GS.PlayerCount(8) >= 10 then GS.Cast(_, death_from_above, _, _, _, _, "Death from Above") return end
-                                    if GS.SCA(nightblade) and GS.AuraRemaining("target", nightblade, (GS.Talent31 and 5.4 or 4.8)) then GS.Cast(_, nightblade, _, _, _, _, "Nightblade") return end
-                                    if GS.AoE and GS.SIR(nightblade) and #GS["tNightblade"] < 6 then
-                                        table.sort(GS.MobTargets, GS.SortMobTargetsByHighestTTD)
-                                        for i = 1, mobTargetsSize do
-                                            rotationUnitIterator = GS.MobTargets[i]
-                                            if GS.GetTTD(rotationUnitIterator) > 6 then
-                                                if GS.SCA(nightblade, rotationUnitIterator) and GS.AuraRemaining(rotationUnitIterator, nightblade, (GS.Talent31 and 5.4 or 4.8)) then GS.Cast(rotationUnitIterator, nightblade, _, _, _, _, "Nightblade: AoE") return end
-                                            else
-                                                break
-                                            end
-                                        end
-                                    end
-                                    if GS.Talent73 and GS.SCA(death_from_above) then GS.Cast(_, death_from_above, _, _, _, _, "Death from Above") return end
-                                    if GS.SCA(eviscerate) then GS.Cast(_, eviscerate, _, _, _, _, "Eviscerate") return end
-                                else -- Generators
-                                    if GS.AoE and GS.SIR(shuriken_storm) and GS.PlayerCount(10) >= 2 then GS.Cast(_, shuriken_storm, _, _, _, _, "Shuriken Storm: Cleave") return end
-                                    if (GS.PP("deficit"))/GetPowerRegen() < 2.5 then
-                                        if GS.Talent13 then
-                                            if GS.SCA(gloomblade) then GS.Cast(_, gloomblade, _, _, _, _, "Gloomblade") return end
-                                        else
-                                            if GS.SCA(backstab) then GS.Cast(_, backstab, _, _, _, _, "Backstab") return end
-                                        end
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-
-        -- Priests
-            do
-                -- todo: verify Discipline Priest
-                -- todo: verify Holy Priest
-
-                do -- Shadow
-                    -- talents=1211111
-                    -- artifact=47:142063:142057:142063:0:764:1:767:3:768:1:770:1:771:3:772:3:774:3:775:3:777:3:1347:1
-
-                    function GS.PRIEST3()
-                        if UnitAffectingCombat("player") then
-                            GS.MultiDoT("Shadow Word: Pain")
-                            GS.MultiDoT("Vampiric Touch")
-                            if GS.ValidTarget() and (not GSR.ChaosMode or GetTime() > GS.SpellThrottle) then
-                                -- actions=use_item,slot=trinket2
-                                -- actions+=/potion,name=deadly_grace,if=buff.bloodlust.react|target.time_to_die<=40
-
-                                if GS.Aura("player", 194249) then -- VF
-                                    if GS.Aura("player", 193223) then -- StM
-                                        if GS.Talent62 and GS.SIR(205385) then
-                                            GS.SmartAoE(40, 8)
-                                            GS.Cast(_, 205385, rotationXC, rotationYC, rotationZC, "nextTick", "Shadow Crash")
-                                            return
-                                        end
-                                        if GS.Talent63 and GS.SCA(200174, "target", true) then GS.Cast(_, 200174, _, _, _, "nextTick", "Mindbender") return end
-                                        if GS.CDs and GS.SIR(47585) and not GS.Aura("player", 10060) and not GS.Aura("player", berserking) and not GS.Bloodlust() then GS.Cast(_, 47585, _, _, _, "nextTick", "Dispersion: Pause Void Form Stacks") return end
-                                        if GS.CDs and GS.Talent61 and GS.SIR(10060) and GS.AuraStacks("player", 194249, 10) then GS.Cast(_, 10060, _, _, _, "nextTick", "Power Infusion: Voidform") return end
-                                        -- actions.s2m+=/berserking,if=buff.voidform.stack>=10
-                                        if GS.SIR(205448) then
-                                            if GS.SCA(205448, "target", true) and GS.GetTTD() > 10 then
-                                                if GS.Aura("target", 589, "", "PLAYER") and GS.Aura("target", 34914, "", "PLAYER") and GS.AuraRemaining("target", 589, 3.5*GS.GCD(), "", "PLAYER") and GS.AuraRemaining("target", 34914, 3.5*GS.GCD(), "", "PLAYER") then GS.Cast(_, 228260, _, _, _, "nextTick", "Void Bolt: Refresh Shadow Word Pain and Vampiric Touch") return end
-                                                if GS.Aura("target", 589, "", "PLAYER") and GS.AuraRemaining("target", 589, 3.5*GS.GCD(), "", "PLAYER") and (GS.Talent52 or GS.Talent53) then GS.Cast(_, 228260, _, _, _, "nextTick", "Void Bolt: Refresh Shadow Word Pain, Auspicious Spirits or Shadowy Insight Talented") return end
-                                                if GS.Aura("target", 34914, "", "PLAYER") and GS.AuraRemaining("target", 34914, 3.5*GS.GCD()) and (GS.Talent51 --[[or GS.Talent52 and artifact.unleash_the_shadows.rank]]) then GS.Cast(_, 228260, _, _, _, "nextTick", "Void Bolt: Refresh Vampiric Touch") return end
-                                                -- actions.s2m+=/void_bolt,if=dot.shadow_word_pain.remains<3.5*gcd&artifact.sphere_of_insanity.rank&target.time_to_die>10,cycle_targets=1    
-                                            end
-                                            if GS.AoE then
-                                                table.sort(GS.tShadowWordPain, GS.SortMobTargetsByHighestTTD)
-                                                table.sort(GS.tVampiricTouch, GS.SortMobTargetsByHighestTTD)
-                                                for i = 1, #GS.tShadowWordPain do
-                                                    rotationUnitIterator = GS.tShadowWordPain[i]
-                                                    if GS.GetTTD(rotationUnitIterator) > 10 then
-                                                        if GS.SCA(205448, rotationUnitIterator, true) then
-                                                            if GS.AuraRemaining(rotationUnitIterator, 589, 3.5*GS.GCD(), "", "PLAYER") and GS.Aura(rotationUnitIterator, 34914, "", "PLAYER") and GS.AuraRemaining(rotationUnitIterator, 34914, 3.5*GS.GCD(), "", "PLAYER") then GS.Cast(rotationUnitIterator, 228260, _, _, _, "nextTick", "Void Bolt: AoE, Refresh Shadow Word Pain and Vampiric Touch") return end
-                                                            if (GS.Talent52 or GS.Talent53) and GS.AuraRemaining(rotationUnitIterator, 589, 3.5*GS.GCD(), "", "PLAYER") then GS.Cast(rotationUnitIterator, 228260, _, _, _, "nextTick", "Void Bolt: Refresh Shadow Word Pain, Auspicious Spirits or Shadowy Insight Talented") return end
-                                                        end
-                                                    else
-                                                        break
-                                                    end
-                                                end
-
-                                                if GS.Talent51 --[[or GS.Talent52 and artifact.unleash_the_shadows.rank]] then
-                                                    for i = 1, #GS.tVampiricTouch do
-                                                        rotationUnitIterator = GS.tVampiricTouch[i]
-                                                        if GS.GetTTD(rotationUnitIterator) > 10 then
-                                                            if GS.SCA(205448, rotationUnitIterator, true) then
-                                                                if GS.AuraRemaining(rotationUnitIterator, 34914, 3.5*GS.GCD()) then GS.Cast(rotationUnitIterator, 228260, _, _, _, "nextTick", "Void Bolt: AoE, Refresh Vampiric Touch") return end
-                                                            end
-                                                        else
-                                                            break
-                                                        end
-                                                    end
-                                                end
-
-                                                -- if artifact.sphere_of_insanity.rank then
-                                                --     for i = 1, #GS.tShadowWordPain do
-                                                --         rotationUnitIterator = GS.tShadowWordPain[i]
-                                            --             if GS.GetTTD(rotationUnitIterator) > 10 then
-                                            --                 if GS.SCA(205448, rotationUnitIterator, true) then
-                                            --                     actions.s2m+=/void_bolt,if=dot.shadow_word_pain.remains<3.5*gcd&artifact.sphere_of_insanity.rank&target.time_to_die>10,cycle_targets=1
-                                            --                 end
-                                            --             else
-                                            --                 break
-                                            --             end
-                                                --     end
-                                                -- end
-                                            end
-                                        end
-                                        if GS.SCA(205448, "target", true) then GS.Cast(_, 228260, _, _, _, "nextTick", "Void Bolt") return end
-                                        -- actions.s2m+=/void_torrent
-                                        -- actions.s2m+=/shadow_word_death,if=!talent.reaper_of_souls.enabled&current_insanity_drain*gcd.max>insanity&(insanity-(current_insanity_drain*gcd.max)+30)<100
-                                        -- actions.s2m+=/shadow_word_death,if=talent.reaper_of_souls.enabled&current_insanity_drain*gcd.max>insanity&(insanity-(current_insanity_drain*gcd.max)+90)<100
-                                        if GS.SCA(8092, "target", true) then GS.Cast(_, 8092, _, _, _, "nextTick", "Mind Blast") return end
-                                        if GS.SCA(32379, "target", true) and GetSpellCharges(32379) == 2 then GS.Cast(_, 32379, _, _, _, "nextTick", "Shadow Word Death: Capped Charges") return end
-                                        if GS.CDs and not GS.Talent63 and GS.SCA(34433, "target", true) and GS.AuraStacks("player", 194249, 16) then GS.Cast(_, 34433, _, _, _, "nextTick", "Shadowfiend") return end
-                                        if GS.Talent13 and GS.SCA(205351, "target", true) and (GS.PP()-(GS.VoidformInsanity("drain")*GS.GCD())+75) < 100 then GS.Cast(_, 205351, _, _, _, "nextTick", "Shadow Word Void: Voidform") return end
-                                        if GS.SIR(589) then
-                                            if GS.SCA(589, "target", true) and not GS.Aura("target", 589, "", "PLAYER") then
-                                                GS.Cast(_, 589, _, _, _, "nextTick", "Shadow Word Pain: Not Up")
-                                                return
-                                            elseif GS.AoE then
-                                                for i = 1, mobTargetsSize do
-                                                    rotationUnitIterator = GS.MobTargets[i]
-                                                    if GS.SCA(589, rotationUnitIterator, true) and not GS.Aura(rotationUnitIterator, 589, "", "PLAYER") then GS.Cast(rotationUnitIterator, 589, _, _, _, "nextTick", "Shadow Word Pain: AoE Not Up") return end
-                                                end
-                                            end
-                                        end
-                                        if GS.SIR(34914) then
-                                            if GS.SCA(34914, "target", true) and not GS.Aura("target", 34914, "", "PLAYER") then
-                                                GS.Cast(_, 34914, _, _, _, "nextTick", "Vampiric Touch: Not Up")
-                                                return
-                                            elseif GS.AoE then
-                                                for i = 1, mobTargetsSize do
-                                                    rotationUnitIterator = GS.MobTargets[i]
-                                                    if GS.SCA(34914, rotationUnitIterator, true) and not GS.Aura(rotationUnitIterator, 34914, "", "PLAYER") then GS.Cast(rotationUnitIterator, 34914, _, _, _, "nextTick", "Vampiric Touch: Not Up") return end
-                                                end
-                                            end
-                                        end
-                                        if GS.SpellCDDuration(205448) < (GS.GCD()*0.75) then if toggleLog then GS.Log("Waiting for Void Bolt"); toggleLog = false end return end
-                                        if GS.AoE and GS.SCA(48045, "target", true) and GS.TargetCount(10) >= 3 then GS.Cast(_, 48045, _, _, _, "nextTick Mind Flay", "Mind Sear") return end
-                                        if not GS.Talent72 then
-                                            if GS.SCA(15407, "target", true) and UnitChannelInfo("player") and (select(6, UnitChannelInfo("player"))/1000-GetTime()) <= (.75/(1+GetHaste()*.01)) then GS.Cast(_, 15407, _, _, _, "chain", "Mind Flay: Chain") return end
-                                            if GS.SCA(15407) then GS.Cast(_, 15407, _, _, _, _, "Mind Flay") return end
-                                        else
-                                            if GS.SCA(73510) then GS.Cast(_, 73510, _, _, _, _, "Mind Spike") return end
-                                        end
-                                        if GS.SCA(589) then GS.Cast(_, 589, _, _, _, _, "Shadow Word: Pain") return end
-                                        return
-                                    end
-                                    -- #vf
-                                    -- if GS.CDs and GS.Talent73 and GS.SIR(193223) and GS.UnitIsBoss("target") and GS.PP() >= 25 and (GS.SpellCDDuration(205448) == 0 --[[or cooldown.void_torrent.up or cooldown.shadow_word_death.up]] or GS.Aura("player", 124430)) and GS.Health("target", _, true) < 30 then GS.Cast(_, 193223, _, _, _, _, "Surrender to Madness") return end
-                                    -- actions.vf=surrender_to_madness,if=talent.surrender_to_madness.enabled&insanity>=25&(cooldown.void_bolt.up|cooldown.void_torrent.up|cooldown.shadow_word_death.up|buff.shadowy_insight.up)&target.time_to_die<=45+((raw_haste_pct*100)*(2+(1*talent.reaper_of_souls.enabled)+(2*artifact.mass_hysteria.rank)))-buff.insanity_drain_stacks.stack
-                                    if GS.Talent62 and GS.SIR(205385) then
-                                        GS.SmartAoE(40, 8)
-                                        GS.Cast(_, 205385, rotationXC, rotationYC, rotationZC, "nextTick", "Shadow Crash")
-                                        return
-                                    end
-                                    if GS.Talent63 and GS.SCA(200174, "target", true) then GS.Cast(_, 200174, _, _, _, "nextTick", "Mindbender") return end
-                                    -- if GS.CDs and GS.SIR(47585) and not GS.Aura("player", 10060) and not GS.Aura("player", berserking) and not GS.Bloodlust() --[[and artifact.void_torrent.rank]] then GS.Cast(_, 47585, _, _, _, "nextTick", "Dispersion: Pause Void Form Stacks") return end
-                                    if GS.CDs and GS.Talent61 and GS.SIR(10060) and GS.AuraStacks("player", 194249, 10) and GS.VoidformInsanity("count") <= 30 then GS.Cast(_, 10060, _, _, _, _, "Power Infusion: Voidform") return end
-                                    -- actions.vf+=/berserking,if=buff.voidform.stack>=10&buff.insanity_drain_stacks.stack<=20
-                                    if GS.SIR(205448) then
-                                        if GS.SCA(205448, "target", true) and GS.GetTTD() > 10 then
-                                            if GS.Aura("target", 589, "", "PLAYER") and GS.Aura("target", 34914, "", "PLAYER") and GS.AuraRemaining("target", 589, 3.5*GS.GCD(), "", "PLAYER") and GS.AuraRemaining("target", 34914, 3.5*GS.GCD(), "", "PLAYER") then GS.Cast(_, 228260, _, _, _, "nextTick", "Void Bolt: Refresh Shadow Word Pain and Vampiric Touch") return end
-                                            if GS.Aura("target", 589, "", "PLAYER") and GS.AuraRemaining("target", 589, 3.5*GS.GCD(), "", "PLAYER") and (GS.Talent52 or GS.Talent53) then GS.Cast(_, 228260, _, _, _, "nextTick", "Void Bolt: Refresh Shadow Word Pain, Auspicious Spirits or Shadowy Insight Talented") return end
-                                            if GS.Aura("target", 34914, "", "PLAYER") and GS.AuraRemaining("target", 34914, 3.5*GS.GCD()) and (GS.Talent51 --[[or GS.Talent52 and artifact.unleash_the_shadows.rank]]) then GS.Cast(_, 228260, _, _, _, "nextTick", "Void Bolt: Refresh Vampiric Touch") return end
-                                            -- actions.s2m+=/void_bolt,if=dot.shadow_word_pain.remains<3.5*gcd&artifact.sphere_of_insanity.rank&target.time_to_die>10,cycle_targets=1    
-                                        end
-                                        if GS.AoE then
-                                            table.sort(GS.tShadowWordPain, GS.SortMobTargetsByHighestTTD)
-                                            table.sort(GS.tVampiricTouch, GS.SortMobTargetsByHighestTTD)
-                                            for i = 1, #GS.tShadowWordPain do
-                                                rotationUnitIterator = GS.tShadowWordPain[i]
-                                                if GS.GetTTD(rotationUnitIterator) > 10 then
-                                                    if GS.SCA(205448, rotationUnitIterator, true) then
-                                                        if GS.AuraRemaining(rotationUnitIterator, 589, 3.5*GS.GCD(), "", "PLAYER") and GS.Aura(rotationUnitIterator, 34914, "", "PLAYER") and GS.AuraRemaining(rotationUnitIterator, 34914, 3.5*GS.GCD(), "", "PLAYER") then GS.Cast(rotationUnitIterator, 228260, _, _, _, "nextTick", "Void Bolt: AoE, Refresh Shadow Word Pain and Vampiric Touch") return end
-                                                        if (GS.Talent52 or GS.Talent53) and GS.AuraRemaining(rotationUnitIterator, 589, 3.5*GS.GCD(), "", "PLAYER") then GS.Cast(rotationUnitIterator, 228260, _, _, _, "nextTick", "Void Bolt: Refresh Shadow Word Pain, Auspicious Spirits or Shadowy Insight Talented") return end
-                                                    end
-                                                else
-                                                    break
-                                                end
-                                            end
-
-                                            if GS.Talent51 --[[or GS.Talent52 and artifact.unleash_the_shadows.rank]] then
-                                                for i = 1, #GS.tVampiricTouch do
-                                                    rotationUnitIterator = GS.tVampiricTouch[i]
-                                                    if GS.GetTTD(rotationUnitIterator) > 10 then
-                                                        if GS.SCA(205448, rotationUnitIterator, true) then
-                                                            if GS.AuraRemaining(rotationUnitIterator, 34914, 3.5*GS.GCD()) then GS.Cast(rotationUnitIterator, 228260, _, _, _, "nextTick", "Void Bolt: AoE, Refresh Vampiric Touch") return end
-                                                        end
-                                                    else
-                                                        break
-                                                    end
-                                                end
-                                            end
-
-                                            -- if artifact.sphere_of_insanity.rank then
-                                            --     for i = 1, #GS.tShadowWordPain do
-                                            --         rotationUnitIterator = GS.tShadowWordPain[i]
-                                        --             if GS.GetTTD(rotationUnitIterator) > 10 then
-                                        --                 if GS.SCA(205448, rotationUnitIterator, true) then
-                                        --                     actions.s2m+=/void_bolt,if=dot.shadow_word_pain.remains<3.5*gcd&artifact.sphere_of_insanity.rank&target.time_to_die>10,cycle_targets=1
-                                        --                 end
-                                        --             else
-                                        --                 break
-                                        --             end
-                                            --     end
-                                            -- end
-                                        end
-                                    end
-                                    if GS.SCA(205448, "target", true) then GS.Cast(_, 228260, _, _, _, "nextTick", "Void Bolt") return end
-                                    -- actions.vf+=/void_torrent
-                                    if GS.SIR(32379, true) then
-                                        if GS.Talent42 then
-                                            -- actions.vf+=/shadow_word_death,if=!talent.reaper_of_souls.enabled&current_insanity_drain*gcd.max>insanity&(insanity-(current_insanity_drain*gcd.max)+10)<100
-                                        else
-                                            -- actions.vf+=/shadow_word_death,if=talent.reaper_of_souls.enabled&current_insanity_drain*gcd.max>insanity&(insanity-(current_insanity_drain*gcd.max)+30)<100
-                                        end
-                                    end
-                                    if GS.SCA(8092, "target", true) then GS.Cast(_, 8092, _, _, _, "nextTick", "Mind Blast") return end
-                                    if GS.SCA(32379, "target", true) and GetSpellCharges(32379) == 2 then GS.Cast(_, 32379, _, _, _, "nextTick", "Shadow Word Death: Capped Charges") return end
-                                    if GS.CDs and not GS.Talent63 and GS.SCA(34433, "target", true) and GS.AuraStacks("player", 194249, 16) then GS.Cast(_, 34433, _, _, _, "nextTick", "Shadowfiend") return end
-                                    if GS.Talent13 and GS.SCA(205351, "target", true) and (GS.PP()-(GS.VoidformInsanity("drain")*GS.GCD()+25)) < 100 then GS.Cast(_, 205351, _, _, _, _, "Shadow Word Void: Voidform") return end
-                                    -- actions.s2m+=/shadow_word_pain,if=!ticking&(active_enemies<5|talent.auspicious_spirits.enabled|talent.shadowy_insight.enabled|artifact.sphere_of_insanity.rank)
-                                    -- actions.s2m+=/vampiric_touch,if=!ticking&(active_enemies<4|talent.sanlayn.enabled|(talent.auspicious_spirits.enabled&artifact.unleash_the_shadows.rank))
-                                    -- actions.s2m+=/shadow_word_pain,if=!ticking&target.time_to_die>10&(active_enemies<5&(talent.auspicious_spirits.enabled|talent.shadowy_insight.enabled)),cycle_targets=1
-                                    -- actions.s2m+=/vampiric_touch,if=!ticking&target.time_to_die>10&(active_enemies<4|talent.sanlayn.enabled|(talent.auspicious_spirits.enabled&artifact.unleash_the_shadows.rank)),cycle_targets=1
-                                    -- actions.s2m+=/shadow_word_pain,if=!ticking&target.time_to_die>10&(active_enemies<5&artifact.sphere_of_insanity.rank),cycle_targets=1
-                                    if GS.SpellCDDuration(205448) < (GS.GCD()*0.75) then if toggleLog then GS.Log("Waiting for Void Bolt"); toggleLog = false end return end
-                                    if GS.AoE and GS.SCA(48045, "target", true) and GS.TargetCount(10) >= 3 then GS.Cast(_, 48045, _, _, _, "nextTick Mind Flay", "Mind Sear") return end
-                                    if not GS.Talent72 then
-                                        if GS.SCA(15407, "target", true) and UnitChannelInfo("player") and (select(6, UnitChannelInfo("player"))/1000-GetTime()) <= (.75/(1+GetHaste()*.01)) then GS.Cast(_, 15407, _, _, _, "chain", "Mind Flay: Chain") return end
-                                        if GS.SCA(15407) then GS.Cast(_, 15407, _, _, _, _, "Mind Flay") return end
-                                    else
-                                        if GS.SCA(73510) then GS.Cast(_, 73510, _, _, _, _, "Mind Spike") return end
-                                    end
-                                    if GS.SCA(589) then GS.Cast(_, 589, _, _, _, _, "Shadow Word: Pain") return end
-                                    return
-                                end
-
-                                if GS.CDs and GS.Talent73 and GS.SIR(193223) and GS.UnitIsBoss("target") and GS.Health("target", _, true) < 30 then GS.Cast(_, 193223, _, _, _, _, "Surrender to Madness") return end
-                                if GS.Talent63 and GS.SCA(200174, "target", true) then GS.Cast(_, 200174, _, _, _, "nextTick", "Mindbender") return end
-                                if GS.SCA(589, "target", true) and GS.AuraRemaining("target", 589, ((3+4/3)*GS.GCD())) then GS.Cast(_, 589, _, _, _, "nextTick", "Shadow Word Pain: 4.3r*GCD") return end
-                                if GS.SCA(34914, "target", true) and GS.AuraRemaining("target", 34914, ((3+4/3)*GS.GCD())) then GS.Cast(_, 34914, _, _, _, "nextTick", "Vampiric Touch: 4.3r*GCD") return end
-                                if GS.SIR(228260) and (GS.PP() >= 85 or GS.Talent52 and GS.PP() >= (80-GS.Priest.ApparitionsInFlight*4)) then GS.Cast(_, 228260, _, _, _, "nextTick", "Void Eruption") return end
-                                if GS.Talent62 and GS.SIR(205385) then
-                                    GS.SmartAoE(40, 8)
-                                    GS.Cast(_, 205385, rotationXC, rotationYC, rotationZC, "nextTick", "Shadow Crash")
-                                    return
-                                end
-                                -- if GS.Talent63 and GS.SCA(200174, "target", true) --[[and set_bonus.tier18_2pc]] then GS.Cast(_, 200174, _, _, _, "nextTick", "Mindbender: T18 2PC") return end
-                                if GS.SIR(589) and GS.Talent71 and GS.PP() >= 70 then
-                                    if GS.SCA(589, "target", true) and not GS.Aura("target", 589, "", "PLAYER") then
-                                        GS.Cast(_, 589, _, _, _, "nextTick", "Shadow Word Pain: Not Up")
-                                        return
-                                    elseif GS.AoE then
-                                        for i = 1, mobTargetsSize do
-                                            rotationUnitIterator = GS.MobTargets[i]
-                                            if GS.SCA(589, rotationUnitIterator, true) and not GS.Aura(rotationUnitIterator, 589, "", "PLAYER") then GS.Cast(rotationUnitIterator, 589, _, _, _, "nextTick", "Shadow Word Pain: AoE Not Up") return end
-                                        end
-                                    end
-                                end
-                                if GS.SIR(34914) and GS.Talent71 and GS.PP() >= 70 then
-                                    if GS.SCA(34914, "target", true) and not GS.Aura("target", 34914, "", "PLAYER") then
-                                        GS.Cast(_, 34914, _, _, _, "nextTick", "Vampiric Touch: Not Up")
-                                        return
-                                    elseif GS.AoE then
-                                        for i = 1, mobTargetsSize do
-                                            rotationUnitIterator = GS.MobTargets[i]
-                                            if GS.SCA(34914, rotationUnitIterator, true) and not GS.Aura(rotationUnitIterator, 34914, "", "PLAYER") then GS.Cast(rotationUnitIterator, 34914, _, _, _, "nextTick", "Vampiric Touch: Not Up") return end
-                                        end
-                                    end
-                                end
-                                if GS.SCA(32379, "target", true) and GetSpellCharges(32379) == 2 then
-                                    if not GS.Talent42 then
-                                        if GS.PP() <= 90 then GS.Cast(_, 32379, _, _, _, "nextTick", "Shadow Word Death: Capped Charges") return end
-                                    else
-                                        if GS.PP() <= 70 then GS.Cast(_, 32379, _, _, _, "nextTick", "Shadow Word Death: Capped Charges") return end
-                                    end
-                                end
-                                if GS.SCA(8092, "target", true) and GS.Talent71 and (GS.PP() <= 81 or GS.PP() <= 75.2 and GS.Talent12) then GS.Cast(_, 8092, _, _, _, "nextTick", "Mind Blast: Without Capping Insainity") return end
-                                if GS.SCA(8092, "target", true) and (not GS.Talent71 or GS.PP() <= 96 or GS.PP() <= 95.2 and GS.Talent12) then GS.Cast(_, 8092, _, _, _, "nextTick", "Mind Blast: Without Capping") return end
-                                -- actions.main+=/shadow_word_pain,if=!ticking&target.time_to_die>10&(active_enemies<5&(talent.auspicious_spirits.enabled|talent.shadowy_insight.enabled)),cycle_targets=1
-                                -- actions.main+=/vampiric_touch,if=!ticking&target.time_to_die>10&(active_enemies<4|talent.sanlayn.enabled|(talent.auspicious_spirits.enabled&artifact.unleash_the_shadows.rank)),cycle_targets=1
-                                -- actions.main+=/shadow_word_pain,if=!ticking&target.time_to_die>10&(active_enemies<5&artifact.sphere_of_insanity.rank),cycle_targets=1
-                                if GS.Talent13 and GS.SCA(205351, "target", true) and (GS.PP() <= 70 and GS.Talent71 or GS.PP() <= 85 and not GS.Talent71) then GS.Cast(_, 205351, _, _, _, "nextTick", "Shadow Word Void") return end
-                                if GS.AoE and GS.SCA(48045, "target", true) and GS.TargetCount(10) >= 3 then GS.Cast(_, 48045, _, _, _, "nextTick Mind Flay", "Mind Sear") return end
-                                if not GS.Talent72 then
-                                    if GS.SCA(15407, "target", true) and UnitChannelInfo("player") and (select(6, UnitChannelInfo("player"))/1000-GetTime()) <= (.75/(1+GetHaste()*.01)) then GS.Cast(_, 15407, _, _, _, "chain", "Mind Flay: Chain") return end
-                                    if GS.SCA(15407) then GS.Cast(_, 15407, _, _, _, _, "Mind Flay") return end
-                                else
-                                    if GS.SCA(73510) then GS.Cast(_, 73510, _, _, _, _, "Mind Spike") return end
-                                end
-                                if GS.SCA(589) then GS.Cast(_, 589, _, _, _, _, "Shadow Word: Pain") return end
-                            end
-                        end
-                    end
-                end
-
-            end
-
-        -- Shamans
-            do
-                -- todo: verify Elemental Shaman
-
-                do -- Enhancement
-                    -- talents=3003112
-                    -- artifact=41:0:0:0:0:899:1:901:1:902:1:903:1:904:1:905:1:909:3:910:3:911:3:912:3:1351:1
-                    
-                    function GS.SHAMAN2()
-                        if UnitAffectingCombat("player") then
-                            if GS.ValidTarget() and (not GSR.ChaosMode or GetTime() > GS.SpellThrottle) then
-                                -- actions=wind_shear
-                                -- actions+=/auto_attack
-                                if GS.CDs then
-                                    if GS.SIR(51533) then GS.Cast(_, 51533, _, _, _, _, "Feral Spirit") return end
-                                    -- actions+=/use_item,slot=trinket2
-                                    -- actions+=/potion,name=draenic_agility,if=pet.feral_spirit.remains>10|pet.frost_wolf.remains>5|pet.fiery_wolf.remains>5|pet.lightning_wolf.remains>5|target.time_to_die<=30
-                                    if GS.SIR(berserking) and (GS.Aura("player", 114051) or not GS.Talent71 or UnitLevel("player") < 100) then GS.Cast(_, berserking, _, _, _, _, "Berserking Troll Racial") return end
-                                    if GS.SIR(33697) then GS.Cast(_, 33697, _, _, _, _, "Blood Fury Orc Racial ASP") return end
-                                end
-                                if GS.Talent13 and GS.SCA(201897) and (GS.AuraRemaining("player", 218825, GS.GCD()) or GS.FracCalc("spell", 201897) >= 1.75) then GS.Cast(_, 201897, _, _, _, _, "Boulderfist: Buff Not Up or Prevent Charges Cap") return end
-                                if GS.Talent43 and GS.SCA(196834) and GS.AuraRemaining("player", 196834, GS.GCD()) then GS.Cast(_, 196834, _, _, _, _, "Frostbrand: Low Buff") return end
-                                if GS.SCA(193796) and GS.AuraRemaining("player", 194084, GS.GCD()) then GS.Cast(_, 193796, _, _, _, _, "Flametongue: Low Buff") return end
-                                if GS.Talent11 and GS.SCA(201898) then GS.Cast(_, 201898, _, _, _, _, "Windsong") return end
-                                if GS.CDs and GS.Talent71 and GS.SIR(114051) then GS.Cast(_, 114051, _, _, _, _, "Ascendance") return end
-                                if GS.Talent62 and not GS.Aura("player", 197211) then GS.Cast(_, 197211, _, _, _, _, "Fury of Air: Not Up") return end
-                                -- actions+=/doom_winds
-                                if GS.AoE and GS.SIR(187874) and GS.TargetCount(8) >= 3 then GS.Cast(_, 187874, _, _, _, _, "Crash Lightning: AoE") return end
-                                if GS.Aura("player", 114051) then
-                                    if GS.SCA(115356) then GS.Cast(_, 115356, _, _, _, _, "Windstrike") return end
-                                else
-                                    if GS.SCA(17364) then GS.Cast(_, 17364, _, _, _, _, "Stormstrike") return end
-                                end
-                                if GS.Talent43 and GS.SCA(196834) and GS.AuraRemaining("player", 196834, 4.8) then GS.Cast(_, 196834, _, _, _, _, "Frostbrand") return end
-                                if GS.SCA(193796) and GS.AuraRemaining("player", 194084, 4.8) then GS.Cast(_, 193796, _, _, _, _, "Flametongue: Buff") return end
-                                if GS.Talent52 and GS.SCA(187837) and GS.PP() >= 60 then GS.Cast(_, 187837, _, _, _, _, "Lightning Bolt: Overcharge") return end
-                                if GS.SCA(60103) and GS.Aura("player", 215785) then GS.Cast(_, 60103, _, _, _, _, "Lava Lash: Hot Hand") return end
-                                if GS.Talent73 and GS.SCA(188089) then GS.Cast(_, 188089, _, _, _, _, "Earthen Spike") return end
-                                if GS.SIR(187874) and (GS.AoE and GS.TargetCount(8) > 1 or GS.Talent61 or GS.SpellCDDuration(51533) > 110) then GS.Cast(_, 187874, _, _, _, _, "Crash Lightning") return end
-                                -- actions+=/sundering
-                                if GS.SCA(60103) and GS.PP() >= 90 then GS.Cast(_, 60103, _, _, _, _, "Lava Lash: Dump Maelstrom") return end
-                                if not GS.Talent13 and GS.SCA(193786) then GS.Cast(_, 193786, _, _, _, _, "Rockbiter") return end
-                                if GS.SCA(193796) then GS.Cast(_, 193796, _, _, _, _, "Flametongue") return end
-                                if GS.Talent13 and GS.SCA(201897) then GS.Cast(_, 201897, _, _, _, _, "Boulderfist") return end
-                            end
-                        end
-                    end
-                end
-
-                -- todo: verify Restoration Shaman
-            end
-
-        -- Mages
-            do
-                -- todo: verify Arcane Mage
-                -- todo: verify Fire Mage
-                -- todo: verify Frost Mage
-            end
-
-        -- Warlocks
-            do
-                function GS.WARLOCK190()
-                end
-                -- todo: verify Affliction Warlock
-                -- todo: verify Demonology Warlock
-                -- todo: verify Destruction Warlock
-            end
-
-        -- Monks
-            do
-                local blood_fury = 33697
-                -- todo: verify Brewmaster Monk
-                -- todo: verify Mistweaver Monk
-
-                function GS.MONK190()
-                    if UnitAffectingCombat("player") or UnitAffectingCombat("focus") then
-                        if GS.ValidTarget() and (not GSR.ChaosMode or GetTime() > GS.SpellThrottle) then
-                            if GS.SCA(121253, "target") then GS.Cast(_, 121253, _, _, _, _, "Keg Smash") return end
-                            if GS.SCA(205523, "target") then GS.Cast(_, 205523, _, _, _, _, "Blackout Strike") return end
-                            if GS.SCA(100780, "target") and (GS.PP()-25)+GetPowerRegen()*(GS.SpellCDDuration(121253)) > 40 then GS.Cast(_, 100780, _, _, _, _, "Tiger Palm") return end
-                        end
-                    end
-                end
-
-                function GS.MistweaverRenewingMist()
-                    if GS.SIR(115151) then
-                        table.sort(GS.AllyTargets, GS.SortAllyTargetsByGreatestDeficit)
-                        for i = 1, allyTargetsSize do
-                            rotationUnitIterator = GS.AllyTargets[i].Player
-                            -- if GS.Health(rotationUnitIterator, _, true) < 100 or UnitGroupRolesAssigned(rotationUnitIterator) == "TANK" then 
-                                if GS.SCA(115151, rotationUnitIterator, true) and --[[not GS.Aura(rotationUnitIterator, 119611, "", "PLAYER")]]GS.AuraRemaining(rotationUnitIterator, 119611, 6, "", "PLAYER") then
-                                    if GS.SIR(116680) and (GS.Talent73 or not GS.Aura("player", 197206)) then GS.Cast(_, 116680, _, _, _, "Soothing Mist", "Thunder Focus Tea: Renewing Mist") return end
-                                    GS.Cast(rotationUnitIterator, 115151, _, _, _, "Soothing Mist", "Renewing Mist: Greatest Deficit")
-                                    return
-                                end
-                            -- else
-                                -- break
-                            -- end
-                        end
-                    else
-                        return false
-                    end
-                end
-
-                function GS.MistweaverEssenceFont90()
-                    if GS.SIR(191837) then
-                        local essenceFontMax = GS.HealingAmount("Essence Font")
-                        local healingCounter, healingAmount = 0, 0
-                        table.sort(GS.AllyTargets, GS.SortAllyTargetsByGreatestDeficit)
-                        for i = 1, allyTargetsSize do
-                            rotationUnitIterator = GS.AllyTargets[i].Player
-                            if GS.Distance(rotationUnitIterator) < 25 then
-                                healingCounter = healingCounter + 1
-                                healingAmount = healingAmount + math.min(essenceFontMax, GS.Health(rotationUnitIterator, _, _, true))
-                            end
-                            if healingCounter >= 6 then break end
-                        end
-                        if healingAmount >= 3*essenceFontMax*GSR.EssenceFontPercent then GS.Cast(_, 191837, _, _, _, "Soothing Mist", "Essence Font") return end
-                    else
-                        return false
-                    end
-                end
-
-                GS.MistweaverVivifyTable = {}
-
-                function GS.MistweaverVivify()
-                    if GS.SIR(116670) and allyTargetsSize > 1 then
-                        local vivifyMax = GS.HealingAmount("Vivify")
-                        local currentHealingAmount, greatestHealingAmount, chosenTarget = 0, (GSR.VivifyPercent*vivifyMax-1), nil
-                        local tempCount, tempGUID = 0, nil
-                        table.sort(GS.AllyTargets, GS.SortAllyTargetsByLowestDistance)
-                        table.wipe(GS.MistweaverVivifyTable)
-                        for i = 1, allyTargetsSize do
-                            rotationUnitIterator = GS.AllyTargets[i].Player
-                            tempCount = 0
-                            if GS.SCA(116670, rotationUnitIterator, true) then
-                                currentHealingAmount = math.min(GS.Health(rotationUnitIterator, _, _, true), vivifyMax)
-                                if i == 1 then
-                                    for v = (i+1), allyTargetsSize do
-                                        if GS.Health(GS.AllyTargets[v].Player, _, true) < 100 then currentHealingAmount = currentHealingAmount + math.min(GS.Health(GS.AllyTargets[v].Player, _, _, true), vivifyMax); tempCount = temptCount + 1 end
-                                        if tempCount >= 2 then break end
-                                    end
-                                elseif i == allyTargetsSize then
-                                    currentHealingAmount = math.min(vivifyMax, GS.Health(rotationUnitIterator, _, _, true))
-                                    for v = (allyTargetsSize-1), 1, -1 do
-                                        if GS.Health(GS.AllyTargets[v].Player, _, true) < 100 then currentHealingAmount = currentHealingAmount + math.min(GS.Health(GS.AllyTargets[v].Player, _, _, true), vivifyMax); tempCount = temptCount + 1 end
-                                        if tempCount >= 2 then break end
-                                    end
-                                else
-                                    currentHealingAmount = math.min(GS.Health(rotationUnitIterator, _, _, true), vivifyMax)
-                                    repeat
-                                        for j = (i-1), 1, -1 do
-                                            if GS.Health(GS.AllyTargets[j].Player, _, true) < 100 and not GS.MistweaverVivifyTable[j] then
-                                                for k = (i+1), allyTargetsSize do
-                                                    if GS.Health(GS.AllyTargets[k].Player, _, true) < 100 and not GS.MistweaverVivifyTable[k] then tempGUID = GS.AllyTargets[k].Player break end
-                                                end
-                                                if GS.Distance(GS.AllyTargets[j].Player, rotationUnitIterator) <= GS.Distance(tempGUID, rotationUnitIterator) then
-                                                    GS.MistweaverVivifyTable[j] = true
-                                                    tempCount = tempCount + 1
-                                                    currentHealingAmount = currentHealingAmount + math.min(GS.Health(GS.AllyTargets[j].Player, _, _, true), vivifyMax)
-                                                end
-                                                tempGUID = nil
-                                                break
-                                            else
-                                                GS.MistweaverVivifyTable[j] = true
-                                            end
-                                        end
-                                        if tempCount < 2 then
-                                            for k = (i+1), allyTargetsSize do
-                                                if GS.Health(GS.AllyTargets[k].Player, _, true) < 100 and not GS.MistweaverVivifyTable[k] then
-                                                    for j = (i-1), 1, -1 do
-                                                        if GS.Health(GS.AllyTargets[j].Player, _, true) < 100 and not GS.MistweaverVivifyTable[j] then tempGUID = GS.AllyTargets[j].Player break end
-                                                    end
-                                                    if GS.Distance(GS.AllyTargets[k].Player, rotationUnitIterator) <= GS.Distance(tempGUID, rotationUnitIterator) then
-                                                        GS.MistweaverVivifyTable[k] = true
-                                                        tempCount = tempCount + 1
-                                                        currentHealingAmount = currentHealingAmount + math.min(GS.Health(GS.AllyTargets[k].Player, _, _, true), vivifyMax)
-                                                    end
-                                                    tempGUID = nil
-                                                    break
-                                                else
-                                                    GS.MistweaverVivifyTable[k] = true
-                                                end
-                                            end
-                                        end
-                                    until (tempCount >= 2 or #GS.MistweaverVivifyTable == allyTargetsSize-1)
-                                end
-                                if currentHealingAmount > greatestHealingAmount then
-                                    greatestHealingAmount = currentHealingAmount
-                                    chosenTarget = rotationUnitIterator
-                                end
-                            end
-                        end
-                        if chosenTarget then
-                            if GS.SIR(116680) and GS.Aura("player", 197206) then GS.Cast(_, 116680, _, _, _, "Soothing Mist", "Thunder Focus Tea: Vivify Uptrance") return end
-                            GS.Cast(chosenTarget, 116670, _, _, _, "Soothing Mist", "Vivify")
-                            return
-                        end
-                    else
-                        return false
-                    end
-                end
-
-                function GS.MistweaverHealingElixirs90()
-                    if GS.Talent51 and GS.SIR(122281) then
-                        if GS.Health("player", _, true) < 85 then GS.Cast(_, 122281, _, _, _, "Soothing Mist", "Healing Elixir") return end
-                    else
-                        return false
-                    end
-                end
-
-                function GS.MistweaverZenPulse90()
-                    if GS.Talent12 and GS.SIR(124081) then
-                        if UnitExists("focus") and GS.SCA(124081, "focus", true) then
-                            local mobCount = GS.FocusCount(8)
-                            local healingAmount = mobCount*GS.HealingAmount("Zen Pulse")
-                            if (GS.Health("focus", _, _, true) > GS.HealingAmount("Enveloping Mist") and healingAmount > GS.HealingAmount("Enveloping Mist") or GS.Aura("focus", 124682, "", "PLAYER") and healingAmount > GS.HealingAmount("Effuse") and GS.Health("focus", _, _, true) > GS.HealingAmount("Effuse")) then
-                                if GS.SCA(124081, "focus", true) then GS.Cast("focus", 124081, _, _, _, "Soothing Mist", "Zen Pulse: RaF") return end
-                            else
-                                return false
-                            end
-                        else
-                            return false
-                        end
-                    else
-                        return false
-                    end
-                end
-
-                function GS.MistweaverEnvelopingMist()
-                    if GS.SIR(124682) then
-                        table.sort(GS.AllyTargets, GS.SortAllyTargetsByGreatestDeficit)
-                        for i = 1, allyTargetsSize do
-                            rotationUnitIterator = GS.AllyTargets[i].Player
-                            if GS.Health(rotationUnitIterator, _, _, true) >= GS.HealingAmount("Enveloping Mist")*GSR.EnvelopingMistPercent then
-                                if GS.SCA(124682, rotationUnitIterator, true) and GS.AuraRemaining(rotationUnitIterator, 124682, (GS.Talent33 and 2.1 or 1.8), "", "PLAYER") then GS.Cast(rotationUnitIterator, 124682, _, _, _, "Soothing Mist", "Enveloping Mist") return end
-                            else
-                                break
-                            end
-                        end
-                        return false
-                    else
-                        return false
-                    end
-                end
-
-                function GS.MistweaverFistVivify()
-                end
-
-                function GS.MistweaverEffuse()
-                    if GS.SIR(116694) then
-                        table.sort(GS.AllyTargets, GS.SortAllyTargetsByGreatestDeficit)
-                        for i = 1, allyTargetsSize do
-                            rotationUnitIterator = GS.AllyTargets[i].Player
-                            if GS.Health(rotationUnitIterator, _, _, true) >= GS.HealingAmount("Effuse")*GSR.EffusePercent then
-                                if GS.SCA(116694, rotationUnitIterator, true) and not GS.Aura(rotationUnitIterator, 115175, "", "PLAYER") then GS.Cast(rotationUnitIterator, 116694, _, _, _, "Soothing Mist", "Effuse") return end
-                            else
-                                break
-                            end
-                        end
-                        return false
-                    else
-                        return false
-                    end
-                end
-
-                function GS.Fistweave()
-                    -- if UnitAffectingCombat("player") or UnitExists("focus") and UnitAffectingCombat("focus") then
-                        if GS.ValidTarget() and (not GSR.ChaosMode or GetTime() > GS.SpellThrottle) then
-                            if GS.SCA(107428, "target", true) and (not GS.Talent73 or GS.SpellCDDuration(116680) > GS.GCD()) then GS.Cast(_, 107428, _, _, _, "Soothing Mist", "Rising Sun Kick: Fistweave") return end
-                            if GS.SCA(100784, "target", true) and (not GS.Talent32 or GS.AuraStacks("player", 202090, 3)) and GS.SpellCDDuration(107428) > GS.GCD() then GS.Cast(_, 100784, _, _, _, "Soothing Mist", "Blackout Kick: Fistweave") return end
-                            if GS.SCA(100780, "target", true) and not GS.AuraStacks("player", 202090, 3) then GS.Cast(_, 100780, _, _, _, "Soothing Mist", "Tiger Palm: Fistweave") return end
-                        end
-                    -- end
-                end
-
-                function GS.MONK290() -- Mistweaver
-                    if UnitAffectingCombat("player") or UnitExists("focus") and UnitAffectingCombat("focus") then
-                        if GetTime() > GS.SpellThrottle then
-                            -- Renewing Mist 115151 , Buff 119611
-                            -- Effuse 116694
-                            -- Enveloping Mist 124682, Buff 124682
-                            -- Vivify 116670, Uplifting Trance Proc 197206
-                            -- Essence Font 191837
-                            -- Thunder Focus Tea 116680
-
-                            GS.MistweaverHealingElixirs90()
-                            GS.MistweaverRenewingMist()
-                            -- GS.MistweaverEssenceFont90()
-                            -- GS.MistweaverVivify()
-                            -- GS.MistweaverZenPulse90()
-                            -- GS.MistweaverEnvelopingMist()
-                            -- GS.MistweaverEffuse()
-                            if (GS.Talent32 or GS.Talent73) and not GS.Aura("player", 116680) then GS.Fistweave() end
-                        end
-                    end
-                end
-
-                do -- Windwalker
-                    -- talents=3020022
-                    -- artifact=50:0:0:0:0:800:3:821:3:824:3:828:1:829:3:831:1:832:1:833:1:1094:3:1341:1
-                    local touch_of_death = 115080
-                    local storm_earth_and_fire = 137639
-                    local serenity = 152173
-                    local fists_of_fury = 113656
-                    local rising_sun_kick = 107428
-                    local energizing_elixir = 115288
-                    local rushing_jade_wind = 116847
-                    local whirling_dragon_punch = 152175
-                    local chi_wave = 115098
-                    local chi_burst = 123986
-                    local blackout_kick = 100784
-                    local blackout_kick_combo = 116768
-                    local tiger_palm = 100780
-
-                    function GS.MONK3()
-                        if UnitAffectingCombat("player") then
-                            if GS.IsCH() then return end
-                            if GS.ValidTarget() and (not GSR.ChaosMode or GetTime() > GS.SpellThrottle) then
-                                if GS.CDs then
-                                    if GS.Talent62 and GS.SCA(123904) then GS.Cast(_, 123904, _, _, _, _, "Invoke Xuen, the White Tiger") return end
-                                    -- actions+=/potion,name=virmens_bite,if=buff.bloodlust.react|target.time_to_die<=60
-                                    if GS.SIR(blood_fury) then GS.Cast(_, blood_fury, _, _, _, _, "Blood Fury Orc Racial ASP") return end
-                                    if GS.SIR(berserking) then GS.Cast(_, berserking, _, _, _, _, "Berserking Troll Racial") return end
-                                    if GS.SIR(129597) and GS.CP("deficit") >= 1 then GS.Cast(_, 129597, _, _, _, _, "Arcane Torrent Belf Racial Monk") return end
-                                    if GS.SCA(touch_of_death) then GS.Cast(_, touch_of_death, _, _, _, _, "Touch of Death") return end
-                                        -- actions+=/touch_of_death,if=!artifact.gale_burst.enabled
-                                        -- actions+=/touch_of_death,if=artifact.gale_burst.enabled&cooldown.strike_of_the_windlord.up&!talent.serenity.enabled&cooldown.fists_of_fury.remains<=9&cooldown.rising_sun_kick.remains<=5
-                                        -- actions+=/touch_of_death,if=artifact.gale_burst.enabled&cooldown.strike_of_the_windlord.up&talent.serenity.enabled&cooldown.fists_of_fury.remains<=3&cooldown.rising_sun_kick.remains<8
-                                    if not GS.Talent73 and GS.SIR(storm_earth_and_fire) and not GS.Aura("player", storm_earth_and_fire) and GS.SpellCDDuration(fists_of_fury) <= 9 and GS.SpellCDDuration(rising_sun_kick) <= 5 then GS.Cast(_, storm_earth_and_fire, _, _, _, _, "Storm, Earth, and Fire") return end
-                                        -- actions+=/storm_earth_and_fire,if=artifact.strike_of_the_windlord.enabled&cooldown.strike_of_the_windlord.up&cooldown.fists_of_fury.remains<=9&cooldown.rising_sun_kick.remains<=5
-                                        -- actions+=/storm_earth_and_fire,if=!artifact.strike_of_the_windlord.enabled&cooldown.fists_of_fury.remains<=9&cooldown.rising_sun_kick.remains<=5
-                                    if GS.Talent73 and GS.SIR(serenity) and GS.SpellCDDuration(fists_of_fury) <= 3 and GS.SpellCDDuration(rising_sun_kick) < 8 then GS.Cast(_, serenity, _, _, _, _, "Serenity") return end
-                                        -- actions+=/serenity,if=artifact.strike_of_the_windlord.enabled&cooldown.strike_of_the_windlord.up&cooldown.fists_of_fury.remains<=3&cooldown.rising_sun_kick.remains<8
-                                        -- actions+=/serenity,if=!artifact.strike_of_the_windlord.enabled&cooldown.fists_of_fury.remains<=3&cooldown.rising_sun_kick.remains<8
-                                end
-                                if GS.Talent31 and GS.SIR(energizing_elixir) and GS.PP("deficit") > 0 and GS.CP() <= 1 and not GS.Aura("player", serenity) then GS.Cast(_, energizing_elixir, _, _, _, _, "Energizing Elixir") return end
-                                if GS.Talent61 and GS.SIR(rushing_jade_wind) and GS.Aura("player", serenity) and GS.Monk.lastCast ~= rushing_jade_wind then GS.Cast(_, rushing_jade_wind, _, _, _, _, "Rushing Jade Wind: Free Serenity") return end
-                                -- actions+=/strike_of_the_windlord,if=artifact.strike_of_the_windlord.enabled
-                                if GS.Talent72 and GS.SIR(whirling_dragon_punch) and not GS.IsCH() and GS.Distance("target") < 8+UnitCombatReach("target") then GS.Cast(_, whirling_dragon_punch, _, _, _, _, "Whirling Dragon Punch") return end
-                                if GS.SCA(fists_of_fury) then GS.Cast(_, fists_of_fury, _, _, _, _, "Fists of Fury") return end
-                                if (not GS.AoE or GS.PlayerCount(8) < 3) then -- Single Target
-                                    if GS.SCA(rising_sun_kick) then GS.Cast(_, rising_sun_kick, _, _, _, _, "Rising Sun Kick") return end
-                                    -- actions.st+=/strike_of_the_windlord
-                                    if GS.Talent61 and GS.SIR(rushing_jade_wind) and GS.CP() > 1 and GS.Monk.lastCast ~= rushing_jade_wind then GS.Cast(_, rushing_jade_wind, _, _, _, _, "Rushing Jade Wind") return end
-                                    if GS.Talent13 and GS.SCA(chi_wave) and (((GS.PP("deficit"))/GetPowerRegen()) > 2 or not GS.Aura("player", serenity)) then GS.Cast(_, chi_wave, _, _, _, _, "Chi Wave") return end
-                                    if GS.Talent11 and GS.SIR(chi_burst) and (GS.PP("deficit")/GetPowerRegen() > 2 or not GS.Aura("player", serenity)) then GS.Cast("target", chi_burst, false, false, false, "SpellToInterrupt", "Chi Burst") return end
-                                    if GS.SCA(blackout_kick) and (GS.CP() > 1 or GS.Aura("player", blackout_kick_combo)) and not GS.Aura("player", serenity) and GS.Monk.lastCast ~= blackout_kick then GS.Cast(_, blackout_kick, _, _, _, _, "Blackout Kick") return end
-                                    if GS.SCA(tiger_palm) and not GS.Aura("player", serenity) and GS.CP() <= 2 and (GS.Monk.lastCast ~= tiger_palm) then GS.Cast(_, tiger_palm, _, _, _, _, "Tiger Palm") return end
-                                else -- AoE
-                                    if GS.SIR(101546) and GS.Monk.lastCast ~= 101546 then GS.Cast(_, 101546, _, _, _, _, "Spinning Crane Kick") return end
-                                    -- actions.aoe+=/strike_of_the_windlord
-                                    if GS.Talent61 and GS.SIR(rushing_jade_wind) and GS.CP() >= 2 and GS.Monk.lastCast ~= rushing_jade_wind then GS.Cast(_, rushing_jade_wind, _, _, _, _, "Rushing Jade Wind") return end
-                                    if GS.Talent13 and GS.SCA(chi_wave) and (((GS.PP("deficit"))/GetPowerRegen()) > 2 or not GS.Aura("player", serenity)) then GS.Cast(_, chi_wave, _, _, _, _, "Chi Wave") return end
-                                    if GS.Talent11 and GS.SIR(chi_burst) and (GS.PP("deficit")/GetPowerRegen() > 2 or not GS.Aura("player", serenity)) then GS.Cast("target", chi_burst, false, false, false, "SpellToInterrupt", "Chi Burst") return end
-                                    if GS.SCA(tiger_palm) and not GS.Aura("player", serenity) and GS.CP() <= 2 and GS.Monk.lastCast ~= tiger_palm then GS.Cast(_, tiger_palm, _, _, _, _, "Tiger Palm") return end
-                                end
-                                -- actions.opener=blood_fury
-                                -- actions.opener+=/berserking
-                                -- actions.opener+=/arcane_torrent,if=chi.max-chi>=1
-                                -- actions.opener+=/fists_of_fury,if=buff.serenity.up&buff.serenity.remains<1.5
-                                -- if GS.SCA(107428) then GS.Cast(_, 107428, _, _, _, _, "Rising Sun Kick") return end
-                                -- actions.opener+=/blackout_kick,if=chi.max-chi<=1&cooldown.chi_brew.up|buff.serenity.up
-                                -- actions.opener+=/serenity,if=chi.max-chi<=2
-                                -- actions.opener+=/tiger_palm,if=chi.max-chi>=2&!buff.serenity.up
-                            end
-                        end
-                    end
-                end
-            end
-
-        -- Druids
-            do
-                do -- Balance
-                    -- talents=2200221
-                    -- artifact=59:0:0:0:0:1035:3:1036:3:1039:2:1040:3:1042:3:1044:1:1046:1:1047:1:1049:1:1294:1
-                    local astral_communion    = 202359
-                    local blessing_of_anshe   = 202739
-                    local blessing_of_elune   = 202737
-                    local celestial_alignment = 194223
-                    local fury_of_elune       = 202770
-                    local incarnation         = 102560
-                    local lunar_empowerment   = 164547
-                    local lunar_strike        = 194153
-                    local moonfire            =        {spell = 8921, debuff = 164812}
-                    local solar_empowerment   = 164545
-                    local solar_wrath         = 190984
-                    local starsurge           =  78674
-                    local stellar_flare       = 202347
-                    local sunfire             =        {spell = 93402, debuff = 164815}
-                    local warrior_of_elune    = 202425
-                    
-                    function GS.DRUID1()
-                        if UnitAffectingCombat("player") then
-                            if GS.ValidTarget() and (not GSR.ChaosMode or GetTime() > GS.SpellThrottle) then
-                                if GS.CDs and GS.Aura("player", (GS.Talent52 and incarnation or celestial_alignment)) then
-                                    -- actions=potion,name=draenic_intellect
-                                    -- actions+=/berserking
-                                end
-                                if GS.Talent71 and (GS.Aura("player", fury_of_elune) or GS.CDs and GS.UnitIsBoss("target") and GS.SpellCDDuration(fury_of_elune) < GS.GetTTD()) then -- Fury of Elune Rotation
-                                    if GS.PP() >= 95 and GS.SpellCDDuration(fury_of_elune) <= GS.GCD() then
-                                        if GS.Talent52 then
-                                            if GS.SIR(incarnation) then GS.Cast(_, incarnation, _, _, _, _, "Incarnation: Fury of Elune Time") return end
-                                        else
-                                            if GS.SIR(celestial_alignment) then GS.Cast(_, celestial_alignment, _, _, _, _, "Celestial Alignment: Fury of Elune Time") return end
-                                        end
-                                        if GS.SIR(fury_of_elune) then GS.Cast(_, fury_of_elune, _, _, _, _, "Fury of Elune") return end -- todo: handle the aoe part later
-                                    end
-                                    -- actions.fury_of_elune+=/new_moon,if=((charges=2&recharge_time<5)|charges=3)&&(buff.fury_of_elune_up.up|(cooldown.fury_of_elune.remains>gcd*3&astral_power<=90))
-                                    -- actions.fury_of_elune+=/half_moon,if=((charges=2&recharge_time<5)|charges=3)&&(buff.fury_of_elune_up.up|(cooldown.fury_of_elune.remains>gcd*3&astral_power<=80))
-                                    -- actions.fury_of_elune+=/full_moon,if=((charges=2&recharge_time<5)|charges=3)&&(buff.fury_of_elune_up.up|(cooldown.fury_of_elune.remains>gcd*3&astral_power<=60))
-                                    if GS.Talent62 and GS.SIR(astral_communion) and GS.PP() <= 25 then GS.Cast(_, astral_communion, _, _, _, _, "Astral Communion: Fury of Elune") return end
-                                    if GS.Talent12 and GS.SIR(warrior_of_elune) and (GS.Aura("player", fury_of_elune) or GS.SpellCDDuration(fury_of_elune) >= 35 and GS.Aura("player", lunar_empowerment)) then GS.Cast(_, warrior_of_elune, _, _, _, _, "Warrior of Elune: Fury of Elune") return end
-                                    if GS.SCA(lunar_strike) and GS.Aura("player", warrior_of_elune) and (GS.PP() <= 90 or GS.PP() <= 85 and GS.Aura("player", (GS.Talent52 and incarnation or celestial_alignment))) then GS.Cast(_, lunar_strike, _, _, _, _, "Lunar Strike: Fury of Elune") return end
-                                    -- actions.fury_of_elune+=/new_moon,if=astral_power<=90&buff.fury_of_elune_up.up
-                                    -- actions.fury_of_elune+=/half_moon,if=astral_power<=80&buff.fury_of_elune_up.up&astral_power>cast_time*12
-                                    -- actions.fury_of_elune+=/full_moon,if=astral_power<=60&buff.fury_of_elune_up.up&astral_power>cast_time*12
-                                    if not GS.Aura("player", fury_of_elune) then
-                                        if GS.SCA(moonfire.spell) and GS.AuraRemaining("target", moonfire.debuff, 6.6, "Lunar", "PLAYER") then GS.Cast(_, moonfire.spell, _, _, _, _, "Moonfire: Fury of Elune") return end
-                                        if GS.SCA(sunfire.spell) and GS.AuraRemaining("target", sunfire.debuff, 5.4, "Solar", "PLAYER") then GS.Cast(_, sunfire.spell, _, _, _, _, "Sunfire: Fury of Elune") return end
-                                    end
-                                    if GS.Talent53 and GS.SCA(stellar_flare) and GS.AuraRemaining("target", stellar_flare, 7.2, "", "PLAYER") then GS.Cast(_, stellar_flare, _, _, _, _, "Stellar Flare: Refresh") return end
-                                    if GS.SCA(starsurge) and not GS.Aura("player", fury_of_elune) and (GS.PP() >= 92 and GS.SpellCDDuration(fury_of_elune) > GS.GCD()*3 or GS.SpellCDDuration(warrior_of_elune) <= 5 and GS.SpellCDDuration(fury_of_elune) >= 35 and not GS.AuraStacks("player", lunar_empowerment, 2)) then GS.Cast(_, starsurge, _, _, _, _, "Starsurge: Fury of Elune") return end
-                                    if GS.SCA(solar_wrath) and GS.Aura("player", solar_empowerment) then GS.Cast(_, solar_wrath, _, _, _, _, "Solar Wrath: Empowered") return end
-                                    if GS.SCA(lunar_strike) and (GS.AuraStacks("player", lunar_empowerment, 3) or GS.Aura("player", lunar_empowerment) and GS.AuraRemaining("player", lunar_empowerment, 5)) then GS.Cast(_, lunar_strike, _, _, _, _, "Lunar Strike: Fury of Elune") return end
-                                    if GS.SCA(solar_wrath) then GS.Cast(_, solar_wrath, _, _, _, _, "Solar Wrath") return end
-                                end
-                                -- actions+=/new_moon,if=(charges=2&recharge_time<5)|charges=3
-                                -- actions+=/half_moon,if=(charges=2&recharge_time<5)|charges=3|(target.time_to_die<15&charges=2)
-                                -- actions+=/full_moon,if=(charges=2&recharge_time<5)|charges=3|target.time_to_die<15
-                                if GS.Talent53 and GS.SCA(stellar_flare) and GS.AuraRemaining("target", stellar_flare, 7.2, "", "PLAYER") then GS.Cast(_, stellar_flare, _, _, _, _, "Stellar Flare: Refresh") return end
-                                if GS.SCA(moonfire.spell) and GS.AuraRemaining("target", moonfire.debuff, (GS.Talent73 and 3 or 6.6), "Lunar", "PLAYER") then GS.Cast(_, moonfire.spell, _, _, _, _, "Moonfire") return end
-                                if GS.SCA(sunfire.spell) and GS.AuraRemaining("target", sunfire.debuff, (GS.Talent73 and 5.4 or 3), "Solar", "PLAYER") then GS.Cast(_, sunfire.spell, _, _, _, _, "Sunfire") return end
-                                if GS.CDs then
-                                    if GS.Talent62 and GS.SIR(astral_communion) and GS.PP("deficit") >= 75 then GS.Cast(_, astral_communion, _, _, _, _, "Astral Communion") return end
-                                    if GS.PP() >= 40 then
-                                        if GS.Talent52 then
-                                            if GS.SIR(incarnation) then GS.Cast(_, incarnation, _, _, _, _, "Incarnation") return end
-                                        else
-                                            if GS.SIR(celestial_alignment) then GS.Cast(_, celestial_alignment, _, _, _, _, "Celestial Alignment") return end
-                                        end
-                                    end
-                                end
-                                if GS.SCA(solar_wrath) and GS.AuraStacks("player", solar_empowerment, 3) then GS.Cast(_, solar_wrath, _, _, _, _, "Solar Wrath: Capped Empowered") return end
-                                if GS.SCA(lunar_strike) and GS.AuraStacks("player", lunar_empowerment, 3) then GS.Cast(_, lunar_strike, _, _, _, _, "Lunar Strike: Capped Empowered") return end
-                                if GS.Aura("player", (GS.Talent52 and incarnation or celestial_alignment)) then -- Celestial Alignment or Incarnation Rotation
-                                    if GS.SCA(starsurge) then GS.Cast(_, starsurge, _, _, _, _, "Starsurge") return end
-                                    if GS.Talent12 and GS.SIR(warrior_of_elune) and GS.AuraStacks("player", lunar_empowerment, 2) and GS.PP() <= (GS.Aura("player", blessing_of_elune) and 58 or 70) then GS.Cast(_, warrior_of_elune, _, _, _, _, "Warrior of Elune") return end
-                                    if GS.SCA(lunar_strike) and GS.Aura("player", warrior_of_elune) then GS.Cast(_, lunar_strike, _, _, _, _, "Lunar Strike: Instant Warrior Of Elune") return end
-                                    if GS.SCA(solar_wrath) and GS.Aura("player", solar_empowerment) then GS.Cast(_, solar_wrath, _, _, _, _, "Solar Wrath: Empowered") return end
-                                    if GS.SCA(lunar_strike) and GS.Aura("player", lunar_empowerment) then GS.Cast(_, lunar_strike, _, _, _, _, "Lunar Strike: Empowered") return end
-                                    if GS.Talent73 and GS.SCA(solar_wrath) and GS.AuraRemaining("target", sunfire.debuff, 5, "Solar", "PLAYER") and not GS.AuraRemaining("target", sunfire.debuff, GS.CastTime(solar_wrath), "Solar", "PLAYER") then GS.Cast(_, solar_wrath, _, _, _, _, "Solar Wrath: Extend Sunfire") return end
-                                    if GS.Talent73 and GS.SCA(lunar_strike) and GS.AuraRemaining("target", moonfire.debuff, 5, "Lunar", "PLAYER") and not GS.AuraRemaining("target", moonfire.debuff, GS.CastTime(lunar_strike), "Lunar", "PLAYER") then GS.Cast(_, lunar_strike, _, _, _, _, "Lunar Strike: Extend Moonfire") return end
-                                    if GS.SCA(solar_wrath) then GS.Cast(_, solar_wrath, _, _, _, _, "Solar Wrath") return end
-                                end
-
-                                -- actions.single_target=new_moon,if=astral_power<=90
-                                -- actions.single_target+=/half_moon,if=astral_power<=80
-                                -- actions.single_target+=/full_moon,if=astral_power<=60
-                                if GS.SCA(starsurge) then GS.Cast(_, starsurge, _, _, _, _, "Starsurge") return end
-                                if GS.Talent12 and GS.SIR(warrior_of_elune) and GS.AuraStacks("player", lunar_empowerment, 2) and GS.PP() <= (GS.Aura("player", blessing_of_elune) and 72 or 80) then GS.Cast(_, warrior_of_elune, _, _, _, _, "Warrior of Elune") return end
-                                if GS.SCA(lunar_strike) and GS.Aura("player", warrior_of_elune) then GS.Cast(_, lunar_strike, _, _, _, _, "Lunar Strike: Instant Warrior Of Elune") return end
-                                if GS.SCA(solar_wrath) and GS.Aura("player", solar_empowerment) then GS.Cast(_, solar_wrath, _, _, _, _, "Solar Wrath: Empowered") return end
-                                if GS.SCA(lunar_strike) and GS.Aura("player", lunar_empowerment) then GS.Cast(_, lunar_strike, _, _, _, _, "Lunar Strike: Empowered") return end
-                                if GS.Talent73 and GS.SCA(solar_wrath) and GS.AuraRemaining("target", sunfire.debuff, 5, "Solar", "PLAYER") and not GS.AuraRemaining("target", sunfire.debuff, GS.CastTime(solar_wrath), "Solar", "PLAYER") then GS.Cast(_, solar_wrath, _, _, _, _, "Solar Wrath: Extend Sunfire") return end
-                                if GS.Talent73 and GS.SCA(lunar_strike) and GS.AuraRemaining("target", moonfire.debuff, 5, "Lunar", "PLAYER") and not GS.AuraRemaining("target", moonfire.debuff, GS.CastTime(lunar_strike), "Lunar", "PLAYER") then GS.Cast(_, lunar_strike, _, _, _, _, "Lunar Strike: Extend Moonfire") return end
-                                if GS.SCA(solar_wrath) then GS.Cast(_, solar_wrath, _, _, _, _, "Solar Wrath") return end
-                            end
-                        end
-                    end
-                end
-
-                do -- Feral
-                    -- talents=3323323
-                    -- artifact=58:0:0:0:0:1153:1:1156:1:1157:1:1158:1:1161:3:1163:2:1164:3:1165:3:1166:3:1327:1
-                    local feralPlaceHolderOne, feralPlaceHolderTwo = false, false
-                    function GS.DRUID2()
-                        if UnitAffectingCombat("player") then
-                            if GS.ValidTarget() and (not GSR.ChaosMode or GetTime() > GS.SpellThrottle) then
-                                if GS.SCA(1822) and GS.Aura("player", 5215) then
-                                    GS.Druid.RakeMultiplier[ObjectPointer("target")] = GS.RakeCurrentMultiplier()
-                                    GS.Cast(_, 1822, _, _, _, _, "Rake: Prowl")
-                                    return
-                                end
-                                if GS.Talent63 and GS.SIR(202060) and GS.CP() == 0 --[[and (not artifact.ashamanes_bite.enabled or not dota.ashamanes_rip.ticking)]] then
-                                    if GS.PP() < 50 then
-                                        return
-                                    else
-                                        GS.Cast(_, 202060, _, _, _, _, "Elune's Guidance")
-                                        return
-                                    end
-                                end
-                                if GS.CDs then
-                                    if not GS.Talent52 then
-                                        if GS.SIR(106951) and GS.Aura("player", 5217) then GS.Cast(_, 106951, _, _, _, _, "Berserk") return end
-                                    else
-                                        if GS.SIR(102543) and GS.SpellCDDuration(5217) < 1 then GS.Cast(_, 102543, _, _, _, _, "Incarnation: Tiger's Fury Almost Up") return end
-                                    end
-                                    -- actions+=/use_item,slot=trinket2,if=(prev.tigers_fury&(target.time_to_die>trinket.stat.any.cooldown|target.time_to_die<45))|prev.berserk|(buff.incarnation.up&time<10)
-                                    -- actions+=/potion,name=draenic_agility,if=((buff.berserk.remains>10|buff.incarnation.remains>20)&(target.time_to_die<180|(trinket.proc.all.react&target.health.pct<25)))|target.time_to_die<=40
-                                    if GS.SIR(berserking) and GS.SIR(5217) then GS.Cast(_, berserking, _, _, _, _, "Berserking Troll Racial") return end
-                                end
-                                if GS.SIR(5217) and GS.SpellCDDuration(61304) == 0 then
-                                    if (not GS.Aura("player", 135700) and GS.PP("deficit") >= 60 or GS.PP("deficit") >= 80 --[[or t18_class_trinket and GS.Aura("player", 106951)]]) then GS.Cast(_, 5217, _, _, _, _, "Tiger's Fury") return end
-                                    if GS.Talent61 and (GetTime()-GS.CombatStart) < 10 and GS.CP() == 5 then GS.Cast(_, 5217, _, _, _, _, "Tiger's Fury") return end
-                                end
-                                if GS.CDs and GS.Talent52 and GS.SIR(102543) and ((GS.PP("deficit"))/GetPowerRegen()) > 1 then GS.Cast(_, 102543, _, _, _, _, "Incarnation") return end
-                                if GS.SIR(22568) then
-                                    if GS.SCA(22568) and GS.Aura("target", 1079, "", "PLAYER") and GS.AuraRemaining("target", 1079, 3, "", "PLAYER") and GS.Health("target", _, true) < 25 then GS.Cast(_, 22568, _, _, _, _, "Ferocious Bite: Blood in the Water") return end
-                                    if GS.AoE and GS.SIR(22568) then
-                                        for i = 1, mobTargetsSize do
-                                            rotationUnitIterator = GS.MobTargets[i]
-                                            if GS.SCA(22568, rotationUnitIterator) and GS.Aura(rotationUnitIterator, 1079, "", "PLAYER") and GS.AuraRemaining(rotationUnitIterator, 1079, 3, "", "PLAYER") and GS.Health(rotationUnitIterator, _, true) < 25 then GS.Cast(rotationUnitIterator, 22568, _, _, _, _, "Ferocious Bite: Blood in the Water") return end
-                                        end
-                                    end
-                                end
-                                if GS.Talent72 and GS.SIR(5185) and GS.Aura("player", 69369) and (GS.CP() >= 4 --[[and not set_bonus.tier18_4pc]] or GS.CP() == 5 or GS.AuraRemaining("player", 69369, 1.5)) then GS.Cast("player", 5185, _, _, _, _, "Healing Touch: Bloodtalons") return end
-                                if GS.Talent53 and GS.SIR(52610) and not GS.Aura("player", 52610) then GS.Cast(_, 52610, _, _, _, _, "Savage Roar: Not Up") return end
-                                -- -- actions+=/thrash_cat,if=set_bonus.tier18_4pc&buff.clearcasting.react&remains<=duration*0.3&combo_points+buff.bloodtalons.stack!=6
-                                if GS.AoE and (--[[GS.PlayerCount(8) >=2 and set_bonus.tier17_2pc or ]]GS.PlayerCount(8) >= 4) and GS.SpellCDDuration(106830) == 0 then
-                                    feralPlaceHolderOne = GS.Talent62 and 3 or 4.5
-                                    feralPlaceHolderTwo = false
-                                    if GS.AuraRemaining("target", 106830, feralPlaceHolderOne, "Feral, Guardian", "PLAYER") and GS.Distance("target") <= 8+UnitCombatReach("target") then
-                                        feralPlaceHolderTwo = true
-                                    else
-                                        for i = 1, mobTargetsSize do
-                                            rotationUnitIterator = GS.MobTargets[i]
-                                            if GS.AuraRemaining(rotationUnitIterator, 106830, feralPlaceHolderOne, "Feral, Guardian", "PLAYER") and GS.Distance(rotationUnitIterator) <= 8+UnitCombatReach(rotationUnitIterator) then
-                                                feralPlaceHolderTwo = true
-                                                break
-                                            end
-                                        end
-                                    end
-                                    if feralPlaceHolderTwo then
-                                        if GS.PoolCheck(106830) then return end
-                                        if GS.SIR(106830) then GS.Cast(_, 106830, _, _, _, _, "Thrash") return end
-                                    end
-                                end
-                                if GS.CP() == 5 then
-                                    if GS.SIR(1079) then
-                                        feralPlaceHolderOne = GS.Talent62 and 4.8 or 7.2
-                                        if GS.SCA(1079) and GS.AuraRemaining("target", 1079, feralPlaceHolderOne, "", "PLAYER") and (GS.Health("target", _, true) > 25 or not GS.Aura("target", 1079, "", "PLAYER")) then GS.Cast(_, 1079, _, _, _, _, "Rip") return end
-                                        if GS.AoE then
-                                            for i = 1, mobTargetsSize do
-                                                rotationUnitIterator = GS.MobTargets[i]
-                                                if GS.SCA(1079, rotationUnitIterator) and GS.AuraRemaining(rotationUnitIterator, 1079, feralPlaceHolderOne, "", "PLAYER") and (GS.Health(rotationUnitIterator, _, true) > 25 or not GS.Aura(rotationUnitIterator, 1079, "", "PLAYER")) then GS.Cast(rotationUnitIterator, 1079, _, _, _, _, "Rip: AoE") return end
-                                            end
-                                        end
-                                    end
-                                    if GS.Talent53 and GS.SIR(52610) and GS.AuraRemaining("player", 52610, 7.2) and (GS.Health("target", _, true) < 25 or ((GS.PP("deficit"))/GetPowerRegen()) < 1 or GS.Aura("player", 106951) or GS.Aura("player", 102543) or GS.AuraRemaining("target", 155722, 1.5, "", "PLAYER") or GS.Talent63 and GS.SpellCDDuration(202060) > 40 or GS.SpellCDDuration(5217) < 3 or GS.Talent73 and GS.Aura("player", 135700)) then
-                                        --                                                                                        Execute                                        Energy Cap                                   Berserk                      Incarnation                  Rake < 1.5                                               Elune's Guidance                                                     Tiger's Fury Almost Up               Clearcasting
-                                        GS.Cast(_, 52610, _, _, _, _, "Savage Roar")
-                                        return
-                                    end
-                                    if GS.SIR(22568) and GS.PP() >= 50 then
-                                        feralPlaceHolderOne, feralPlaceHolderTwo = false, false
-                                        if GS.Talent61 then feralPlaceHolderOne = true end
-                                        if (GS.SpellCDDuration(5217) < 3 or ((GS.PP("deficit"))/GetPowerRegen()) < 1 or GS.Aura("player", 106951) or GS.Aura("player", 102543) or GS.Talent63 and GS.SpellCDDuration(202060) > 40 or GS.Talent73 and GS.Aura("player", 135700)) then
-                                            feralPlaceHolderTwo = true
-                                        end
-                                        if GS.SCA(22568) and (feralPlaceHolderOne or GS.Health("target", _, true) < 25) and (feralPlaceHolderTwo or GS.AuraRemaining("target", 155722, 1.5, "", "PLAYER")) then
-                                            GS.Cast(_, 22568, _, _, _, _, "Ferocious Bite: Blood in the Water")
-                                            return
-                                        elseif GS.AoE then
-                                            for i = 1, mobTargetsSize do
-                                                rotationUnitIterator = GS.MobTargets[i]
-                                                if GS.SCA(22568, rotationUnitIterator) and (feralPlaceHolderOne or GS.Health(rotationUnitIterator, _, true) < 25) and (feralPlaceHolderTwo or GS.AuraRemaining(rotationUnitIterator, 155722, 1.5, "", "PLAYER")) then
-                                                    GS.Cast(rotationUnitIterator, 22568, _, _, _, _, "Ferocious Bite: AoE Blood in the Water")
-                                                    return
-                                                end
-                                            end
-                                        end
-                                        if GS.SCA(22568) and (GS.Aura("player", 106951) or GS.Aura("player", 102543) or GS.SpellCDDuration(5217) < 3 or GS.Talent63 and GS.SpellCDDuration(202060) > 40) then GS.Cast(_, 22568, _, _, _, _, "Ferocious Bite") return end
-                                        if GS.SCA(22568) and ((GS.PP("deficit"))/GetPowerRegen()) < 1 then GS.Cast(_, 22568, _, _, _, _, "Ferocious Bite: Prevent Energy Cap") return end
-                                    end
-                                end
-                                if GS.Talent53 and GS.SIR(52610) and GS.AuraRemaining("player", 52610, 1) then GS.Cast(_, 52610, _, _, _, _, "Savage Roar: Less Than GCD") return end
-                                -- -- actions+=/ashamanes_frenzy,if=time<10&dot.rake.ticking&!talent.elunes_guidance.enabled
-                                if GS.CP() < 5 then
-                                    if GS.SIR(1822) then
-                                        feralPlaceHolderOne = GS.Talent62 and (2/(1+GetHaste()*.01)) or 3/(1+GetHaste()*.01)
-                                        if GS.SCA(1822) and GS.AuraRemaining("target", 155722, feralPlaceHolderOne, "", "PLAYER") and (((not GS.AoE or GS.PlayerCount(8) < 3) and 3 or 6) < GS.GetTTD() - (GS.Aura("target", 155722, "", "PLAYER") and (select(7, GS.Aura("target", 155722, "", "PLAYER"))-GetTime()) or 0)) then
-                                            GS.Druid.RakeMultiplier[ObjectPointer("target")] = GS.RakeCurrentMultiplier()
-                                            GS.Cast(_, 1822, _, _, _, _, "Rake: Last Tick")
-                                            return
-                                        elseif GS.AoE then
-                                            for i = 1, mobTargetsSize do
-                                                rotationUnitIterator = GS.MobTargets[i]
-                                                if GS.SCA(1822, rotationUnitIterator) then
-                                                    if GS.AuraRemaining(rotationUnitIterator, 155722, feralPlaceHolderOne, "", "PLAYER")
-                                                    and (((not GS.AoE or GS.PlayerCount(8) < 3) and 3 or 6) < GS.GetTTD(rotationUnitIterator) - (GS.Aura(rotationUnitIterator, 155722, "", "PLAYER") and (select(7, GS.Aura(rotationUnitIterator, 155722, "", "PLAYER"))-GetTime()) or 0))
-                                                    then
-                                                        GS.Druid.RakeMultiplier[ObjectPointer(rotationUnitIterator)] = GS.RakeCurrentMultiplier()
-                                                        GS.Cast(rotationUnitIterator, 1822, _, _, _, _, "Rake: Last Tick")
-                                                        return
-                                                    end
-                                                end
-                                            end
-                                        end
-
-                                        feralPlaceHolderOne = GS.Talent62 and 3 or 4.5
-
-                                        if GS.SCA(1822) and GS.AuraRemaining("target", 155722, feralPlaceHolderOne, "", "PLAYER") and (GS.RakeCurrentMultiplier() >= (GS.Druid.RakeMultiplier[ObjectPointer("target")] or 0) or GS.Talent72 and (GS.Aura("player", 145152) or not GS.Aura("player", 69369))) and (GS.GetTTD()-(GS.Aura("target", 155722, "", "PLAYER") and (select(7, GS.Aura("target", 155722, "", "PLAYER"))-GetTime()) or 0) > ((not GS.AoE or GS.PlayerCount(8) < 3) and 3 or 6)) then
-                                            GS.Druid.RakeMultiplier[ObjectPointer("target")] = GS.RakeCurrentMultiplier()
-                                            GS.Cast(_, 1822, _, _, _, _, "Rake: Refreshable")
-                                            return
-                                        elseif GS.AoE then
-                                            for i = 1, mobTargetsSize do
-                                                rotationUnitIterator = GS.MobTargets[i]
-                                                if GS.SCA(1822, rotationUnitIterator) and GS.AuraRemaining(rotationUnitIterator, 155722, feralPlaceHolderOne, "", "PLAYER") and (GS.RakeCurrentMultiplier() >= (GS.Druid.RakeMultiplier[ObjectPointer(rotationUnitIterator)] or 0) or GS.Talent72 and (GS.Aura("player", 145152) or not GS.Aura("player", 69369))) and (GS.GetTTD(rotationUnitIterator)-(GS.Aura(rotationUnitIterator, 155722, "", "PLAYER") and (select(7, GS.Aura(rotationUnitIterator, 155722, "", "PLAYER"))-GetTime()) or 0) > (GS.PlayerCount(8) < 3 and 3 or 6)) then
-                                                    GS.Druid.RakeMultiplier[ObjectPointer(rotationUnitIterator)] = GS.RakeCurrentMultiplier()
-                                                    GS.Cast(rotationUnitIterator, 1822, _, _, _, _, "Rake: Refreshable")
-                                                    return
-                                                end
-                                            end
-                                        end
-                                    end
-                                    if GS.Talent13 and GS.SIR(155625) and GS.PlayerCount(8) <= 5 then
-                                        if GS.SCA(155625) and GS.AuraRemaining("target", 155625, 4.2, "", "PLAYER") and GS.GetTTD()-(GS.Aura("target", 155625, "", "PLAYER") and (select(7, GS.Aura("target", 155625, "", "PLAYER"))-GetTime()) or 0) > 2/(1+GetHaste()*.01)*5 then
-                                            GS.Cast(_, 155625, _, _, _, _, "Moonfire")
-                                            return
-                                        elseif GS.AoE then
-                                            for i = 1, mobTargetsSize do
-                                                rotationUnitIterator = GS.MobTargets[i]
-                                                if GS.SCA(155625, rotationUnitIterator) and GS.AuraRemaining(rotationUnitIterator, 155625, 4.2, "", "PLAYER") and GS.GetTTD(rotationUnitIterator)-(GS.Aura(rotationUnitIterator, 155625, "", "PLAYER") and (select(7, GS.Aura(rotationUnitIterator, 155625, "", "PLAYER"))-GetTime()) or 0) > 2/(1+GetHaste()*.01)*5 then
-                                                    GS.Cast(rotationUnitIterator, 155625, _, _, _, _, "Moonfire")
-                                                    return
-                                                end
-                                            end
-                                        end
-                                    end
-                                end
-                                if GS.AoE and GS.PlayerCount(8) >= 2 and GS.SpellCDDuration(106830) == 0 then
-                                    feralPlaceHolderOne = GS.Talent62 and 3 or 4.5
-                                    feralPlaceHolderTwo = false
-                                    if GS.AuraRemaining("target", 106830, feralPlaceHolderOne, "Feral, Guardian", "PLAYER") and GS.Distance("target") <= 8+UnitCombatReach("target") then
-                                        feralPlaceHolderTwo = true
-                                    else
-                                        for i = 1, mobTargetsSize do
-                                            rotationUnitIterator = GS.MobTargets[i]
-                                            if GS.AuraRemaining(rotationUnitIterator, 106830, feralPlaceHolderOne, "Feral, Guardian", "PLAYER") and GS.Distance(rotationUnitIterator) <= 8+UnitCombatReach(rotationUnitIterator) then
-                                                feralPlaceHolderTwo = true
-                                                break
-                                            end
-                                        end
-                                    end
-                                    if feralPlaceHolderTwo then
-                                        if GS.PoolCheck(106830) then if toggleLog then GS.Log("Pooling for Thrash"); toggleLog = false end return end
-                                        if GS.SIR(106830) then toggleLog = true; GS.Cast(_, 106830, _, _, _, _, "Thrash") return end
-                                    end
-                                end
-                                if GS.CP() < 5 then
-                                    -- actions.generator=ashamanes_frenzy,if=combo_points<=2&buff.elunes_guidance.down
-                                    if GS.AoE then
-                                        if GS.Talent71 then
-                                            if GS.SpellCDDuration(202028) == 0 then
-                                                -- actions.generator+=/pool_resource,for_next=1
-                                                -- actions.generator+=/brutal_slash,if=spell_targets.brutal_slash>desired_targets
-                                                -- actions.generator+=/pool_resource,for_next=1
-                                                -- actions.generator+=/brutal_slash,if=active_enemies>=2&raid_event.adds.exists&raid_event.adds.in>(1+max_charges-charges_fractional)*15
-                                                -- actions.generator+=/pool_resource,for_next=1
-                                                -- actions.generator+=/brutal_slash,if=active_enemies>=2&!raid_event.adds.exists&(charges_fractional>2.66&time>10)
-                                            end
-                                        else
-                                            if GS.SIR(106785) and GS.PlayerCount(8) >= 4 then GS.Cast(_, 106785, _, _, _, _, "Swipe") return end
-                                        end
-                                    end
-                                    if GS.SCA(5221) and (not GS.AoE or GS.PlayerCount(8) <= 3 or GS.Talent71)  then GS.Cast(_, 5221, _, _, _, _, "Shred") return end
-                                end
-                            end
-                        end
-                    end
-                end
-
-                do -- Guardian
-                    -- talents=3323323
-                    -- artifact=57:0:0:0:0:948:3:949:3:950:3:951:3:952:3:953:3:954:3:955:3:956:3:957:1:958:1:959:1:960:1:961:1:962:1:979:1:1334:1
-
-                    function GS.DRUID3()
-                        if UnitAffectingCombat("player") then
-                            if GS.ValidTarget() and (not GSR.ChaosMode or GetTime() > GS.SpellThrottle) then
-                                StartAttack()
-                                if GSR.Interrupt then GS.Interrupt() end
-                                
-                                if GS.SIR(berserking) then GS.Cast(_, berserking, _, _, _, _, "Berserking Troll Racial") return end
-                                -- actions+=/use_item,slot=trinket2
-                                -- actions+=/barkskin
-                                -- actions+=/bristling_fur,if=buff.ironfur.remains<2&rage<40
-                                -- actions+=/ironfur,if=buff.ironfur.down|rage.deficit<25
-                                -- actions+=/frenzied_regeneration,if=!ticking&incoming_damage_6s%health.max>0.25+(2-charges_fractional)*0.15
-                                if GS.Talent73 and not GS.Aura("player", 158792) then
-                                    if GS.SCA(80313) then GS.Cast(_, 80313, _, _, _, _, "Pulverize") return end
-                                    for i = 1, mobTargetsSize do
-                                        rotationUnitIterator = GS.MobTargets[i]
-                                        if GS.SCA(80313, rotationUnitIterator) then GS.Cast(rotationUnitIterator, 80313, _, _, _, _, "Pulverize") return end
-                                    end
-                                end
-                                if GS.SCA(33917) then GS.Cast(_, 33917, _, _, _, _, "Mangle") return end
-                                if GS.Talent73 and GS.AuraRemaining("player", 158792, GS.GCD()) then
-                                    if GS.SCA(80313) then GS.Cast(_, 80313, _, _, _, _, "Pulverize") return end
-                                    for i = 1, mobTargetsSize do
-                                        rotationUnitIterator = GS.MobTargets[i]
-                                        if GS.SCA(80313, rotationUnitIterator) then GS.Cast(rotationUnitIterator, 80313, _, _, _, _, "Pulverize") return end
-                                    end
-                                end
-                                -- actions+=/lunar_beam
-                                -- actions+=/incarnation
-                                if GS.AoE and GS.SIR(77758) and GS.PlayerCount(8) >= 2 then GS.Cast(_, 77758, _, _, _, _, "Thrash: AoE") return end
-                                if GS.Talent73 and GS.AuraRemaining("player", 158792, 3.6) then
-                                    if GS.SCA(80313) then GS.Cast(_, 80313, _, _, _, _, "Pulverize") return end
-                                    for i = 1, mobTargetsSize do
-                                        rotationUnitIterator = GS.MobTargets[i]
-                                        if GS.SCA(80313, rotationUnitIterator) then GS.Cast(rotationUnitIterator, 80313, _, _, _, _, "Pulverize") return end
-                                    end
-                                end
-                                if GS.Talent73 and GS.SIR(77758) and GS.PlayerCount(8) > 0 and GS.AuraRemaining("player", 158792, 3.6) then GS.Cast(_, 77758, _, _, _, _, "Thrash: Pulverize Running Out") return end
-                                if GS.SCA(8921) and not GS.Aura("target", 164812, "Lunar", "PLAYER") then GS.Cast(_, 8921, _, _, _, _, "Moonfire: Not Up") return end
-                                for i = 1, mobTargetsSize do
-                                    rotationUnitIterator = GS.MobTargets[i]
-                                    if GS.UnitIsTappedByPlayer(rotationUnitIterator) and GS.SCA(8921, rotationUnitIterator) and not GS.Aura(rotationUnitIterator, 164812, "Lunar", "PLAYER") then GS.Cast(rotationUnitIterator, 8921, _, _, _, _, "Moonfire: AoE Not Up") return end
-                                end
-                                if GS.SCA(8921) and GS.AuraRemaining("target", 164812, 3.6, "Lunar", "PLAYER") then GS.Cast(_, 8921, _, _, _, _, "Moonfire: Low Duration") return end
-                                for i = 1, mobTargetsSize do
-                                    rotationUnitIterator = GS.MobTargets[i]
-                                    if GS.UnitIsTappedByPlayer(rotationUnitIterator) and GS.SCA(8921, rotationUnitIterator) and GS.AuraRemaining(rotationUnitIterator, 164812, 3.6, "Lunar", "PLAYER") then GS.Cast(rotationUnitIterator, 8921, _, _, _, _, "Moonfire: AoE Low Duration") return end
-                                end
-                                if GS.SCA(8921) and GS.AuraRemaining("target", 164812, 7.2, "Lunar", "PLAYER") then GS.Cast(_, 8921, _, _, _, _, "Moonfire: Medium Duration") return end
-                                for i = 1, mobTargetsSize do
-                                    rotationUnitIterator = GS.MobTargets[i]
-                                    if GS.UnitIsTappedByPlayer(rotationUnitIterator) and GS.SCA(8921, rotationUnitIterator) and GS.AuraRemaining(rotationUnitIterator, 164812, 7.2, "Lunar", "PLAYER") then GS.Cast(rotationUnitIterator, 8921, _, _, _, _, "Moonfire: AoE Medium Duration") return end
-                                end
-                                if GS.SCA(8921) then GS.Cast(_, 8921, _, _, _, _, "Moonfire") return end
-                            end
-                        end
-                    end
-                end
-                -- todo: verify Restoration Druid
-            end
-
-        -- Demon Hunters
-            do
-                -- todo: verify Havoc Demon Hunter
-                -- todo: verify Vengeance Demon Hunter
-                -- todo: verify Blood Death Knight
-            end
-
-        -- Death Knights
-            do
-                do -- Frost
-                    -- talents=1130023
-                    -- artifact=12:0:0:0:0:108:3:110:2:113:3:114:3:119:1:120:1:122:1:123:1:1090:3:1332:1
-
-                    function GS.DEATHKNIGHT2()
-                        if UnitAffectingCombat("player") then
-                            if GS.ValidTarget() and (not GSR.ChaosMode or GetTime() > GS.SpellThrottle) then
-                                actions=auto_attack
-                                if GS.CDs then
-                                    if GS.SIR(50613) and GS.PP("deficit") > 20 then GS.Cast(_, 50613, _, _, _, _, "Arcane Torrent Belf Racial") return end
-                                    if GS.SIR(20572) and (not GS.Talent72 or GS.Aura("player", 152279)) then GS.Cast(_, 20572, _, _, _, _, "Blood Fury Orc Racial AP") return end
-                                    if GS.SIR(berserking) then GS.Cast(_, berserking, _, _, _, _, "Berserking Troll Racial") return end
-                                    -- actions+=/use_item,slot=trinket2
-                                    -- actions+=/potion,name=draenic_strength,if=cooldown.pillar_of_frost.remains<5&cooldown.thorasus_the_stone_heart_of_draenor.remains<10
-                                    if GS.SIR(51271) then GS.Cast(_, 51271, _, _, _, _, "Pillar of Frost") return end
-                                    -- actions+=/sindragosas_fury
-                                    if GS.Talent71 and GS.SIR(207256) then GS.Cast(_, 207256, _, _, _, _, "Obliteration") return end
-                                    if GS.Talent72 and GS.SIR(152279) and GS.PP() >= 80 then GS.Cast(_, 152279, _, _, _, _, "Breath of Sindragosa") return end
-                                end
-                                if GS.Aura("player", 152279) then -- Breath of Sindragosa Rotation
-                                    if GS.Talent73 and GS.SIR(194913) then GS.Cast(_, 194913, _, _, _, _, "Glacial Advance") return end
-                                    if GS.Talent61 and GS.SCA(207230) and (GS.Aura("player", 51124) or GS.AoE and GS.PlayerCount(8) >= 4) then GS.Cast(_, 207230, _, _, _, _, "Frostscythe") return end
-                                    if GS.SCA(49020) and GS.Aura("player", 51124) then GS.Cast(_, 49020, _, _, _, _, "Obliterate: Killing Machine") return end
-                                    if GS.AoE and GS.SIR(196770) and GS.PlayerCount(8) >= 2 then GS.Cast(_, 196770, _, _, _, _, "Remorseless Winter") return end
-                                    if GS.SCA(49020) then GS.Cast(_, 49020, _, _, _, _, "Obliterate") return end
-                                    if GS.Talent22 then
-                                        if GS.Talent61 and GS.SCA(207230) then GS.Cast(_, 207230, _, _, _, _, "Frostscythe: Frozen Pulse") return end
-                                        if GS.SCA(49184) then GS.Cast(_, 49184, _, _, _, _, "Howling Blast: Frozen Pulse") return end
-                                    end
-                                    if GS.SCA(49184) and not GS.Aura("target", 55095, "", "PLAYER") then GS.Cast(_, 49184, _, _, _, _, "Howling Blast: Frost Fever") return end
-                                    if GS.Talent23 and GS.SIR(57330) then GS.Cast(_, 57330, _, _, _, _, "Horn of Winter") return end
-                                    if not GS.Talent32 then
-                                        if GS.SIR(47568) then GS.Cast(_, 47568, _, _, _, _, "Empower Rune Weapon") return end
-                                    else
-                                        if GS.SIR(207127) then GS.Cast(_, 207127, _, _, _, _, "Hungering Rune Weapon") return end
-                                    end
-                                    if GS.SCA(49184) and GS.Aura("player", 59052) then GS.Cast(_, 49184, _, _, _, _, "Howling Blast: Rime") return end
-                                end
-                                if GS.SCA(49184) and not GS.Aura("target", 55095, "", "PLAYER") then GS.Cast(_, 49184, _, _, _, _, "Howling Blast: Frost Fever") return end
-                                if GS.SCA(49184) and GS.Aura("player", 59052) then GS.Cast(_, 49184, _, _, _, _, "Howling Blast: Rime") return end
-                                if GS.SCA(49143) and GS.PP() >= 80 then GS.Cast(_, 49143, _, _, _, _, "Frost Strike: Dump RP") return end
-                                if GS.Talent73 and GS.SIR(194913) then GS.Cast(_, 194913, _, _, _, _, "Glacial Advance") return end
-                                if GS.Talent61 and GS.SIR(207230) and GS.PlayerCount(8) >= 1 and (GS.Aura("player", 51124) or GS.AoE and GS.PlayerCount(8) >= 4) then GS.Cast(_, 207230, _, _, _, _, "Frostscythe") return end
-                                if GS.SCA(49020) and GS.Aura("player", 51124) then GS.Cast(_, 49020, _, _, _, _, "Obliterate: Killing Machine") return end
-                                if GS.AoE and GS.SIR(196770) and GS.PlayerCount(8) >= 2 then GS.Cast(_, 196770, _, _, _, _, "Remorseless Winter") return end
-                                if GS.SCA(49020) then GS.Cast(_, 49020, _, _, _, _, "Obliterate") return end
-                                if GS.Talent22 then
-                                    if GS.Talent61 and GS.SCA(207230) then GS.Cast(_, 207230, _, _, _, _, "Frostscythe: Frozen Pulse") return end
-                                    if GS.SCA(49184) then GS.Cast(_, 49184, _, _, _, _, "Howling Blast: Frozen Pulse") return end
-                                end
-                                if GS.Talent72 then
-                                    if GS.SCA(49143) and GS.SpellCDDuration(152279) > 15 then GS.Cast(_, 49143, _, _, _, _, "Frost Strike: Breath of Sindragosa Not Up") return end
-                                else
-                                    if GS.SCA(49143) then GS.Cast(_, 49143, _, _, _, _, "Frost Strike") return end
-                                end
-                                if GS.Talent72 then
-                                    if GS.SpellCDDuration(152279) > 15 then
-                                        if GS.Talent23 and GS.SIR(57330) then GS.Cast(_, 57330, _, _, _, _, "Horn of Winter: Breath of Sindragosa Not Up") return end
-                                        if not GS.Talent32 then
-                                            if GS.SIR(47568) then GS.Cast(_, 47568, _, _, _, _, "Empower Rune Weapon") return end
-                                        else
-                                            if GS.SIR(207127) then GS.Cast(_, 207127, _, _, _, _, "Hungering Rune Weapon") return end
-                                        end
-                                    end
-                                else
-                                    if GS.Talent23 and GS.SIR(57330) then GS.Cast(_, 57330, _, _, _, _, "Horn of Winter") return end
-                                    if not GS.Talent32 then
-                                        if GS.SIR(47568) then GS.Cast(_, 47568, _, _, _, _, "Empower Rune Weapon") return end
-                                    else
-                                        if GS.SIR(207127) then GS.Cast(_, 207127, _, _, _, _, "Hungering Rune Weapon") return end
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
-
-                do -- Unholy
-                    -- talents=3330021
-                    -- artifact=16:0:0:0:0:149:1:152:1:153:1:157:3:158:3:264:3:266:3:1119:3:1333:1
-                    
-                    function GS.DEATHKNIGHT3()
-                        if UnitAffectingCombat("player") then
-                            if GS.ValidTarget() and (not GSR.ChaosMode or GetTime() > GS.SpellThrottle) then
-                                -- actions=auto_attack
-                                if GS.CDs then
-                                    if GS.SIR(50613) and GS.PP("deficit") > 20 then GS.Cast(_, 50613, _, _, _, _, "Arcane Torrent Belf Racial") return end
-                                    if GS.SIR(20572) then GS.Cast(_, 20572, _, _, _, _, "Blood Fury Orc Racial AP") return end
-                                    if GS.SIR(berserking) then GS.Cast(_, berserking, _, _, _, _, "Berserking Troll Racial") return end
-                                    -- actions+=/use_item,slot=trinket2
-                                    -- actions+=/potion,name=draenic_strength,if=cooldown.summon_gargoyle.remains>165&!talent.dark_arbiter.enabled
-                                    -- actions+=/potion,name=draenic_strength,if=cooldown.dark_arbiter.remains>165&talent.dark_arbiter.enabled
-                                end
-                                if GS.SCA(77575) and not GS.Aura("target", 191587, "", "PLAYER") then GS.Cast(_, 77575, _, _, _, _, "Outbreak: Virulent Plague Not Up") return end
-                                if GS.SIR(63560) then GS.Cast(_, 63560, _, _, _, _, "Dark Transformation") return end
-                                if GS.Talent23 and GS.SIR(194918) then GS.Cast(_, 194918, _, _, _, _, "Blighted Rune Weapon") return end
-                                if GS.Talent71 and GS.SpellCDDuration(207349) > 165 then -- Val'kyr Rotation
-                                    if GS.SCA(47541) then GS.Cast(_, 47541, _, _, _, _, "Death Coil: Valkyr") return end
-                                    if GS.AoE and GS.PlayerCount(8) >= 2 then
-                                        if not GS.Talent72 and GS.SIR(43265) then
-                                            if #GS.SmartAoE(30, 8, true, true) >= 2 then
-                                                GS.SmartAoE(30, 8)
-                                                GS.Cast(_, 43265, rotationXC, rotationYC, rotationZC, _, "Death and Decay")
-                                                return
-                                            end
-                                        end
-                                        -- actions.aoe+=/epidemic,if=spell_targets.epidemic>4
-                                        if not GS.Talent33 then
-                                            if GS.SCA(55090) and GS.TargetCount(8) >= 2 and GS.SpellCDDuration((not GS.Talent72 and 43265 or 152280)) > 20 then GS.Cast(_, 55090, _, _, _, _, "Scourge Strike: DnD AoE") return end
-                                        else
-                                            if GS.SCA(207311) and GS.TargetCount(8) >= 2 and GS.SpellCDDuration((not GS.Talent72 and 43265 or 152280)) > 20 then GS.Cast(_, 207311, _, _, _, _, "Clawing Shadows: DnD AoE") return end
-                                        end
-                                        -- actions.aoe+=/epidemic,if=spell_targets.epidemic>2
-                                    end
-                                    if GS.SCA(85948) and not GS.AuraStacks("target", 194310, 7, "", "PLAYER") then GS.Cast(_, 85948, _, _, _, _, "Festering Strike: 6 or Less Festering Wounds") return end
-                                    if not GS.Talent33 then
-                                        if GS.SCA(55090) then GS.Cast(_, 55090, _, _, _, _, "Scourge Strike: Val'kyr, Pop Festering Wounds") return end
-                                    else
-                                        if GS.SCA(207311) then GS.Cast(_, 207311, _, _, _, _, "Clawing Shadows: Val'kyr, Pop Festering Wounds") return end
-                                    end
-                                end
-                                if GS.CDs then
-                                    if GS.Talent71 then
-                                        if GS.SIR(207349) and GS.PP() > 80 then GS.Cast(_, 207349, _, _, _, _, "Dark Arbiter") return end
-                                    else
-                                        if GS.SIR(49206) then GS.Cast(_, 49206, _, _, _, _, "Summon Gargoyle") return end
-                                    end
-                                end
-                                if GS.SIR(47541) then
-                                    if GS.SCA(47541) and GS.PP() > 80 then GS.Cast(_, 47541, _, _, _, _, "Death Coil: Dump RP") return end
-                                    if GS.Talent71 then
-                                        if GS.SCA(47541) and GS.Aura("player", 81340) and GS.SpellCDDuration(207349) > 5 then GS.Cast(_, 47541, _, _, _, _, "Death Coil: Sudden Doom, Dark Arbiter Not Up") return end
-                                    else
-                                        if GS.SCA(47541) and GS.Aura("player", 81340) then GS.Cast(_, 47541, _, _, _, _, "Death Coil: Sudden Doom") return end
-                                    end
-                                end
-                                if GS.Talent73 then
-                                    if GS.SCA(130736) and GS.AuraStacks("target", 194310, 3, "", "PLAYER") then GS.Cast(_, 130736, _, _, _, _, "Soul Reaper") return end
-                                    if GS.Aura("target", 130736, "", "PLAYER") then
-                                        if GS.SCA(85948) and not GS.Aura("target", 194310, "", "PLAYER") then GS.Cast(_, 85948, _, _, _, _, "Festering Strike: Soul Reaper No Festering Wounds") return end
-                                        if GS.Aura("target", 194310, "", "PLAYER") then
-                                            if not GS.Talent33 then
-                                                if GS.SCA(55090) then GS.Cast(_, 55090, _, _, _, _, "Scourge Strike: Soul Reaper Pop Festering Wounds") return end
-                                            else
-                                                if GS.SCA(207311) then GS.Cast(_, 207311, _, _, _, _, "Clawing Shadows: Soul Reaper Pop Festering Wounds") return end
-                                            end
-                                        end
-                                    end
-                                end
-                                if GS.Talent72 and GS.SIR(152280) then
-                                    GS.SmartAoE(30, 8)
-                                    GS.Cast(_, 152280, rotationXC, rotationYC, rotationZC, _, "Defile")
-                                    return
-                                end
-                                if GS.AoE and GS.PlayerCount(8) >= 2 then
-                                    if not GS.Talent72 and GS.SIR(43265) then
-                                        if #GS.SmartAoE(30, 8, true, true) >= 2 then
-                                            GS.SmartAoE(30, 8)
-                                            GS.Cast(_, 43265, rotationXC, rotationYC, rotationZC, _, "Death and Decay")
-                                            return
-                                        end
-                                    end
-                                    -- actions.aoe+=/epidemic,if=spell_targets.epidemic>4
-                                    if not GS.Talent33 then
-                                        if GS.SCA(55090) and GS.TargetCount(8) >= 2 and GS.SpellCDDuration((not GS.Talent72 and 43265 or 152280)) > 20 then GS.Cast(_, 55090, _, _, _, _, "Scourge Strike: DnD AoE") return end
-                                    else
-                                        if GS.SCA(207311) and GS.TargetCount(8) >= 2 and GS.SpellCDDuration((not GS.Talent72 and 43265 or 152280)) > 20 then GS.Cast(_, 207311, _, _, _, _, "Clawing Shadows: DnD AoE") return end
-                                    end
-                                    -- actions.aoe+=/epidemic,if=spell_targets.epidemic>2
-                                end
-                                if GS.SCA(85948) and not GS.AuraStacks("target", 194310, 5, "", "PLAYER") then GS.Cast(_, 85948, _, _, _, _, "Festering Strike: 4 or Less Festering Wounds") return end
-                                if not GS.Talent33 then
-                                    if GS.SCA(55090) and GS.Aura("player", 216974) then GS.Cast(_, 55090, _, _, _, _, "Scourge Strike: Necrosis") return end
-                                    if GS.SCA(55090) and GS.Aura("player", 53365) then GS.Cast(_, 55090, _, _, _, _, "Scourge Strike: Unholy Strength") return end
-                                    if GS.SCA(55090) and GS.NumberOfAvailableRunes() >= 3 then GS.Cast(_, 55090, _, _, _, _, "Scourge Strike: 3 or more Runes Available") return end
-                                else
-                                    if GS.SCA(207311) and GS.Aura("player", 216974) then GS.Cast(_, 207311, _, _, _, _, "Clawing Shadows: Necrosis") return end
-                                    if GS.SCA(207311) and GS.Aura("player", 53365) then GS.Cast(_, 207311, _, _, _, _, "Clawing Shadows: Unholy Strength") return end
-                                    if GS.SCA(207311) and GS.NumberOfAvailableRunes() >= 3 then GS.Cast(_, 207311, _, _, _, _, "Clawing Shadows: 3 or more Runes Available") return end
-                                end
-                                if GS.SIR(47541) then
-                                    if GS.Talent61 then
-                                        if GS.Talent71 then
-                                            if GS.SCA(47541) and not GS.Aura("pet", 63560) and GS.SpellCDDuration(207349) > 15 then GS.Cast(_, 47541, _, _, _, _, "Death Coil: Reduce Dark Transformation CD, Dark Arbiter Not Up") return end
-                                        else
-                                            if GS.SCA(47541) and not GS.Aura("pet", 63560) then GS.Cast(_, 47541, _, _, _, _, "Death Coil: Reduce Dark Transformation CD") return end
-                                        end
-                                    end
-                                    if GS.Talent71 then
-                                        if GS.SCA(47541) and GS.SpellCDDuration(207349) > 15 then GS.Cast(_, 47541, _, _, _, _, "Death Coil: Dark Arbiter Not Up") return end
-                                    elseif not GS.Talent61 then
-                                        if GS.SCA(47541) then GS.Cast(_, 47541, _, _, _, _, "Death Coil") return end
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-    end
-
--- Rotations Unverified
-    -- if GS.SIR(20572) then GS.Cast(_, 20572, _, _, _, _, "Blood Fury Orc Racial AP") return end
-    -- if GS.SIR(33697) then GS.Cast(_, 33697, _, _, _, _, "Blood Fury Orc Racial ASP") return end
-    -- if GS.SIR(33702) then GS.Cast(_, 33702, _, _, _, _, "Blood Fury Orc Racial SP") return end
-    -- if GS.SIR(26297) then GS.Cast(_, 26297, _, _, _, _, "Berserking Troll Racial") return end
-    -- if GS.SIR() and GS.PP("deficit") >= 30 then GS.Cast(_, , _, _, _, _, "Arcane Torrent Belf Racial ") return end
-    -- if GS.SIR(80483) and GS.PP("deficit") >= 30 then GS.Cast(_, 80483, _, _, _, _, "Arcane Torrent Belf Racial") return end
-
 
 -- Ace Stuff
     local options = {
@@ -4756,7 +2448,7 @@ local _ = nil
                         name = "Enveloping Mist Percent",
                         type = "range",
                         min = 0,
-                        max = 1,
+                        max = 10,
                         softMin = .5,
                         softMax = 1,
                         get = function() return GSR.EnvelopingMistPercent end,
@@ -4851,5 +2543,3 @@ local _ = nil
     }
 
     AC:RegisterOptionsTable("GS_Settings", options)
-
--- Rotations Legion (based off amr for now)
